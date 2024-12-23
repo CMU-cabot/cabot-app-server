@@ -7,3 +7,5 @@ Flask
 python-socketio
 simple-websocket
 bleak
+numpy==1.26.4
+transforms3d==0.4.2

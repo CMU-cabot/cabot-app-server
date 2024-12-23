@@ -115,7 +115,7 @@ class CaBotTCP():
         self.speak_char = common.SpeakChar(self, "speak")
         self.event_char = common.EventChars(self, "navigate")
         self.touch_char = common.TouchChars(self, "touch")
-        self.camera_image_char = common.CameraImageChars(self, "camera_image")
+        self.camera_image_char = common.CameraImageChars(self, "camera_image", interval=3)
         self.location_char = common.LocationChars(self, "location")
 
         self.handler = subchar_handler("/cabot")
