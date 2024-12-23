@@ -435,10 +435,9 @@ class CameraImageChars(BLENotifyChar):
         self.count += 1
         if self.interval <= self.count:
             self.count = 0
-            cv_image = self.bridge.compressed_imgmsg_to_cv2(msg, desired_encoding='bgr8')
-            # h, w = cv_image.shape[:2]
-            cv_image =cv2.resize(cv_image, None, fx=0.5, fy=0.5)
-            _retval, buffer = cv2.imencode('.jpg', cv_image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+            cv_image = self.bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="bgr8")
+            cv_image = cv2.resize(cv_image, None, fx=0.5, fy=0.5)
+            _retval, buffer = cv2.imencode(".jpg", cv_image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
             self.send_text(self.uuid, f"data:image/jpeg;base64,{base64.b64encode(buffer).decode()}")
 
 
@@ -448,14 +447,14 @@ class LocationChars(BLENotifyChar):
         self.uuid = uuid
 
     def handleLocationCallback(self, msg):
-        anchor_rotate = 0 # TODO
+        anchor_rotate = 0  # TODO
         orientation = msg.pose.orientation
         (_roll, _pitch, yaw) = euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
         location = {
             "lat": msg.lat,
             "lng": msg.lng,
             "floor": msg.floor,
-            "yaw": - anchor_rotate - yaw/math.pi*180
+            "yaw": -anchor_rotate - yaw / math.pi * 180,
         }
         self.send_text(self.uuid, json.dumps(location))
 
