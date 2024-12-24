@@ -105,6 +105,8 @@ RUN apt update && \
 	wireless-tools \
 	ros-humble-rmw-cyclonedds-cpp \
 	ros-humble-diagnostic-updater \
+	ros-humble-tf-transformations \
+	ros-humble-cv-bridge \
 	&& \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*
