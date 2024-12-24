@@ -436,7 +436,7 @@ class CameraImageChars(BLENotifyChar):
         if self.interval <= self.count:
             self.count = 0
             cv_image = self.bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="bgr8")
-            cv_image = cv2.resize(cv_image, None, fx=0.5, fy=0.5)
+            # cv_image = cv2.resize(cv_image, None, fx=0.5, fy=0.5)
             _retval, buffer = cv2.imencode(".jpg", cv_image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
             self.send_text(self.uuid, f"data:image/jpeg;base64,{base64.b64encode(buffer).decode()}")
 
