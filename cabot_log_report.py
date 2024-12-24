@@ -27,6 +27,8 @@ import queue
 import subprocess
 import threading
 import time
+import io
+import base64
 
 DEBUG=False
 
@@ -38,6 +40,7 @@ logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 class LogReport:
     def __init__(self):
         self.request_queue = queue.Queue()
+        self.data_buffers = {}
 
         thread = threading.Thread(target=self.observer)
         thread.setDaemon(True)
@@ -140,15 +143,53 @@ class LogReport:
                 "name": name,
                 "nanoseconds": duration
             }
+        elif request_type == "data-chunk":
+            total_chunks = request["totalChunks"]
+            chunk_data = request["data"]
+            app_log_name = request["appLogName"]
+            chunk_index = request["chunkIndex"]
+            logger.info(f"chunk index of this queue is {chunk_index}")
+
+
+            if app_log_name not in self.data_buffers:
+                self.data_buffers[app_log_name] = {
+                    "buffer": io.BytesIO(),
+                    "received_chunks": 0,
+                    "total_chunks": total_chunks
+                }
+                
+            binary_data = base64.b64decode(chunk_data)
+            self.data_buffers[app_log_name]["buffer"].write(binary_data)
+            self.data_buffers[app_log_name]["received_chunks"] += 1
+            return
         elif request_type == "appLog":
-            app_logs = request["app_log"]
-            log_name = request["log_name"]
+            app_log_name = request["appLogName"]
+            cabot_log_name = request["cabotLogName"]
             file_directory = "/opt/cabot/docker/home/.ros/log/"
-            for key, value in app_logs.items():
-                file_path = file_directory + log_name + "/" + key
-                with open(file_path, "w") as f:
-                    f.write(value)
-            self.submitReport()
+
+            if app_log_name in self.data_buffers:
+                buffer_info = self.data_buffers[app_log_name]
+                if buffer_info["received_chunks"] == buffer_info["total_chunks"]:
+                    final_data = buffer_info["buffer"].getvalue()
+                    file_path = file_directory + cabot_log_name + "/" + app_log_name
+                    logger.info(f"app log save to {file_path}")
+                    with open(file_path, "wb") as f:
+                        f.write(final_data)
+
+                    del self.data_buffers[app_log_name]
+                else:
+                    self.add_to_queue(request_json, callback)
+            return
+
+        # elif request_type == "appLog":
+        #     app_logs = request["app_log"]
+        #     log_name = request["log_name"]
+        #     file_directory = "/opt/cabot/docker/home/.ros/log/"
+        #     for key, value in app_logs.items():
+        #         file_path = file_directory + log_name + "/" + key
+        #         with open(file_path, "w") as f:
+        #             f.write(value)
+        #     self.submitReport()
 
         callback(response)
 
