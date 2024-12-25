@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker compose run --rm cabot-app-server /launch.sh build
+docker compose run --rm cabot-app-server-dev /launch.sh build
