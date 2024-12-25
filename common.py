@@ -23,6 +23,7 @@
 import base64
 import math
 import os
+import re
 import time
 import json
 import threading
@@ -32,7 +33,6 @@ import subprocess
 from uuid import UUID
 from collections import deque
 
-import cv2
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
@@ -41,7 +41,6 @@ from rclpy.time import Time
 from std_msgs.msg import String, Int16
 from diagnostic_msgs.msg import DiagnosticArray
 from rosidl_runtime_py.convert import message_to_ordereddict
-from cv_bridge import CvBridge
 from sensor_msgs.msg import CompressedImage
 from tf_transformations import euler_from_quaternion
 
@@ -427,7 +426,6 @@ class CameraImageChars(BLENotifyChar):
     def __init__(self, owner, uuid, interval=5):
         super().__init__(owner, None)
         self.uuid = uuid
-        self.bridge = CvBridge()
         self.interval = interval
         self.count = 0
 
@@ -435,10 +433,8 @@ class CameraImageChars(BLENotifyChar):
         self.count += 1
         if self.interval <= self.count:
             self.count = 0
-            cv_image = self.bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="bgr8")
-            # cv_image = cv2.resize(cv_image, None, fx=0.5, fy=0.5)
-            _retval, buffer = cv2.imencode(".jpg", cv_image, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-            self.send_text(self.uuid, f"data:image/jpeg;base64,{base64.b64encode(buffer).decode()}")
+            m = re.search(r" (.*) compressed", msg.format)
+            self.send_text(self.uuid, f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}")
 
 
 class LocationChars(BLENotifyChar):
