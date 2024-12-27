@@ -108,7 +108,7 @@ class CaBotTCP():
             @self.sio.event
             def camera_image_request(sid, data):
                 common.logger.info(f"camera_image_request {data}")
-                self.camera_image_char.sendCameraImage()
+                self.camera_image_char.sendCameraImage(to=sid)
 
 
         self.version_char = common.VersionChar(self, "cabot_version")
@@ -135,8 +135,8 @@ class CaBotTCP():
 
         self.error_count = 0
 
-    def send_text(self, uuid, text, priority=10):
-        self.sio.emit(uuid, text)
+    def send_text(self, uuid, text, priority=10, to=None):
+        self.sio.emit(uuid, text, to=to)
 
     def handleSpeak(self, req, res):
         common.logger.info("/speak request tcp (%s)", str(req))

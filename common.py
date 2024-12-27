@@ -297,8 +297,8 @@ class BLENotifyChar:
         self.owner = owner
         self.uuid = uuid
 
-    def send_text(self, uuid, text, priority=10):
-        self.owner.send_text(uuid, text, priority)
+    def send_text(self, uuid, text, priority=10, to=None):
+        self.owner.send_text(uuid, text, priority, to=to)
 
 
 class VersionChar(BLENotifyChar):
@@ -418,11 +418,11 @@ class CameraImageChars(BLENotifyChar):
         super().__init__(owner, None)
         self.uuid = uuid
 
-    def sendCameraImage(self, msg=None):
+    def sendCameraImage(self, msg=None, to=None):
         msg = msg or last_camera_image
         if msg:
             m = re.search(r" (.*) compressed", msg.format)
-            self.send_text(self.uuid, f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}")
+            self.send_text(self.uuid, f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}", to=to)
 
 
 class LocationChars(BLENotifyChar):
