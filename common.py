@@ -297,8 +297,8 @@ class BLENotifyChar:
         self.owner = owner
         self.uuid = uuid
 
-    def send_text(self, uuid, text, priority=10, to=None):
-        self.owner.send_text(uuid, text, priority, to=to)
+    def send_text(self, uuid, text, priority=10, to=None, skip_sid=None):
+        self.owner.send_text(uuid, text, priority, to=to, skip_sid=skip_sid)
 
 
 class VersionChar(BLENotifyChar):
