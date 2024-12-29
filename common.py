@@ -127,14 +127,6 @@ def send_touch():
         handler.handleTouchCallback(message)
 
 @util.setInterval(1)
-def send_camera_image():
-    global last_camera_image
-    image, last_camera_image = last_camera_image, None
-    if image is not None:
-        for handler in event_handlers:
-            handler.handleCameraImageCallback(image)
-
-@util.setInterval(1)
 def send_location():
     global last_location
     location, last_location = last_location, None
@@ -143,7 +135,6 @@ def send_location():
             handler.handleLocationCallback(location)
 
 send_touch()
-send_camera_image()
 send_location()
 
 class BLESubChar:
@@ -306,8 +297,8 @@ class BLENotifyChar:
         self.owner = owner
         self.uuid = uuid
 
-    def send_text(self, uuid, text, priority=10):
-        self.owner.send_text(uuid, text, priority)
+    def send_text(self, uuid, text, priority=10, to=None, skip_sid=None):
+        self.owner.send_text(uuid, text, priority, to=to, skip_sid=skip_sid)
 
 
 class VersionChar(BLENotifyChar):
@@ -423,18 +414,15 @@ class CabotLogResponseChar(BLENotifyChar):
 
 
 class CameraImageChars(BLENotifyChar):
-    def __init__(self, owner, uuid, interval=5):
+    def __init__(self, owner, uuid):
         super().__init__(owner, None)
         self.uuid = uuid
-        self.interval = interval
-        self.count = 0
 
-    def handleLCameraImageCallback(self, msg):
-        self.count += 1
-        if self.interval <= self.count:
-            self.count = 0
+    def sendCameraImage(self, msg=None, to=None):
+        msg = msg or last_camera_image
+        if msg:
             m = re.search(r" (.*) compressed", msg.format)
-            self.send_text(self.uuid, f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}")
+            self.send_text(self.uuid, f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}", to=to)
 
 
 class LocationChars(BLENotifyChar):
