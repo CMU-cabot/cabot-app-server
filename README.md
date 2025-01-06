@@ -8,7 +8,6 @@ BLE server to monitor/control [CaBot](https://github.com/cmu-cabot/cabot)
 
 ```
 git submodule update --init --recursive
-docker-compose build --build-arg UID=$UID
 ./install.sh
 ```
 
@@ -26,7 +25,9 @@ CABOT_BLE_ADAPTER           # default is 'hci0'
 CABOT_START_AT_LAUNCH       # default is 0, launch cabot system if 1 at start up
 CABOT_USE_BLE               # default is false, use BLE if true
 CABOT_USE_TCP               # default is true,  use TCP if true
-NO_BUILD                    # default is false, do not build when launch if true
+HOST_UID                    # host user UID (default=1000)
+HOST_GID                    # host user GID (default=1000)
+HOST_TZ                     # host timezone (default=UTC)
 ```
 
 ## variables for cabot2-ace battery configuration
@@ -73,10 +74,16 @@ cabot   ALL=NOPASSWD: /sbin/poweroff
 
 
 # Test
+- if you build docker image on your environment, run the script to build image
+
+```
+./bake-docker.sh -i              # run docker image build
+```
+
 - launch ble server
 ```
-docker-compose build --build-arg UID=$UID
-docker-compose up ble
+./launch.sh     # launch in production mode
+./launch.sh -d  # launch in development mode
 ```
 
 - launch cabot_ace battery driver alone
