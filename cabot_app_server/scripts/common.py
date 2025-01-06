@@ -20,7 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import base64
+import math
 import os
+import re
 import time
 import json
 import threading
@@ -38,10 +41,12 @@ from rclpy.time import Time
 from std_msgs.msg import String, Int16
 from diagnostic_msgs.msg import DiagnosticArray
 from rosidl_runtime_py.convert import message_to_ordereddict
+from sensor_msgs.msg import CompressedImage
+from tf_transformations import euler_from_quaternion
 
 from mf_localization_msgs.srv import RestartLocalization
 from cabot_msgs.srv import Speak
-from cabot_msgs.msg import Log
+from cabot_msgs.msg import Log, PoseLog
 
 from cabot_common import util
 from cabot_common.event import BaseEvent
@@ -69,6 +74,9 @@ if DEBUG:
     set_debug_mode()
 
 message_buffer = deque(maxlen=10)
+
+last_camera_image: CompressedImage = None
+last_location: PoseLog = None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -117,7 +125,25 @@ def send_touch():
     for handler in event_handlers:
         handler.handleTouchCallback(message)
 
+@util.setInterval(1)
+def send_camera_image():
+    global last_camera_image
+    image, last_camera_image = last_camera_image, None
+    if image is not None:
+        for handler in event_handlers:
+            handler.handleCameraImageCallback(image)
+
+@util.setInterval(1)
+def send_location():
+    global last_location
+    location, last_location = last_location, None
+    if location is not None:
+        for handler in event_handlers:
+            handler.handleLocationCallback(location)
+
 send_touch()
+send_camera_image()
+send_location()
 
 class BLESubChar:
     def __init__(self, owner, uuid, indication=False, extra_callback=None):
@@ -395,6 +421,39 @@ class CabotLogResponseChar(BLENotifyChar):
         self.send_text(self.uuid, jsonText)
 
 
+class CameraImageChars(BLENotifyChar):
+    def __init__(self, owner, uuid, interval=5):
+        super().__init__(owner, None)
+        self.uuid = uuid
+        self.interval = interval
+        self.count = 0
+
+    def handleLCameraImageCallback(self, msg):
+        self.count += 1
+        if self.interval <= self.count:
+            self.count = 0
+            m = re.search(r" (.*) compressed", msg.format)
+            self.send_text(self.uuid, f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}")
+
+
+class LocationChars(BLENotifyChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, None)
+        self.uuid = uuid
+
+    def handleLocationCallback(self, msg):
+        anchor_rotate = 0  # TODO
+        orientation = msg.pose.orientation
+        (_roll, _pitch, yaw) = euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
+        location = {
+            "lat": msg.lat,
+            "lng": msg.lng,
+            "floor": msg.floor,
+            "yaw": -anchor_rotate - yaw / math.pi * 180,
+        }
+        self.send_text(self.uuid, json.dumps(location))
+
+
 class DeviceStatus:
     def __init__(self):
         self.level = "Unknown"
@@ -497,6 +556,8 @@ class CabotNode_Sub(Node):
         self.cabot_event_sub = self.create_subscription(String, '/cabot/event', self.cabot_event_callback, 10)
         self.cabot_touch_sub = self.create_subscription(Int16, '/cabot/touch', self.cabot_touch_callback, 10)
         self.restart_localization_client = self.create_client(RestartLocalization, "/restart_localization")
+        self.camera_image_sub = self.create_subscription(CompressedImage, '/camera/color/image_raw/compressed', self.camera_image_callback, 10)
+        self.location_sub = self.create_subscription(PoseLog, '/cabot/pose_log', self.location_callback, 10)
 
     def diagnostic_agg_callback(self, msg):
         global diagnostics
@@ -532,6 +593,14 @@ class CabotNode_Sub(Node):
 
     def cabot_touch_callback(self, msg):
         message_buffer.append(msg.data)
+
+    def camera_image_callback(self, msg):
+        global last_camera_image
+        last_camera_image = msg
+
+    def location_callback(self, msg):
+        global last_location
+        last_location = msg
 
 class CabotNode_Common():
     def __init__(self):
