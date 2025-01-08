@@ -1,5 +1,7 @@
 const sio = io("http://localhost:5000");
 
+window.setInterval(() => sio.emit("camera_image_request", []), 1000);
+
 sio.on("connect", () => {
     console.log("connected");
 });
