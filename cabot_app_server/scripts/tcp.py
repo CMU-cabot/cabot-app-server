@@ -102,7 +102,12 @@ class CaBotTCP():
             @self.sio.event
             def share(sid, data):
                 common.logger.info(f"share {data[0]}")
-                self.sio.emit("share", data[0])
+                self.sio.emit("share", data[0], skip_sid=sid)
+
+            @self.sio.event
+            def camera_image_request(sid, data):
+                common.logger.info(f"camera_image_request {data}")
+                self.camera_image_char.sendCameraImage(to=sid)
 
 
         self.version_char = common.VersionChar(self, "cabot_version")
@@ -114,7 +119,7 @@ class CaBotTCP():
         self.speak_char = common.SpeakChar(self, "speak")
         self.event_char = common.EventChars(self, "navigate")
         self.touch_char = common.TouchChars(self, "touch")
-        self.camera_image_char = common.CameraImageChars(self, "camera_image", interval=3)
+        self.camera_image_char = common.CameraImageChars(self, "camera_image")
         self.location_char = common.LocationChars(self, "location")
 
         self.handler = subchar_handler("/cabot")
@@ -129,8 +134,8 @@ class CaBotTCP():
 
         self.error_count = 0
 
-    def send_text(self, uuid, text, priority=10):
-        self.sio.emit(uuid, text)
+    def send_text(self, uuid, text, priority=10, to=None, skip_sid=None):
+        self.sio.emit(uuid, text, to=to, skip_sid=skip_sid)
 
     def handleSpeak(self, req, res):
         common.logger.info("/speak request tcp (%s)", str(req))
@@ -144,9 +149,6 @@ class CaBotTCP():
 
     def handleTouchCallback(self, msg):
         self.touch_char.handleTouchCallback(msg)
-
-    def handleCameraImageCallback(self, msg):
-        self.camera_image_char.handleLCameraImageCallback(msg)
 
     def handleLocationCallback(self, msg):
         self.location_char.handleLocationCallback(msg)
