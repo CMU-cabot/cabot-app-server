@@ -1,7 +1,7 @@
 #!/bin/bash
 
 stop_launch() {
-    docker compose -f $dcfile down
+    docker compose -f $dcfile --profile $profile down
     exit 0
 }
 
