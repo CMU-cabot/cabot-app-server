@@ -83,7 +83,7 @@ class BatteryDriver:
                 logger.error(e)
                 break
             except:
-                logger.error(sys.exc_info()[0])
+                logger.error(traceback.format_exc())
                 traceback.print_exc(file=sys.stdout)
                 sys.exit()
             finally:
@@ -237,7 +237,7 @@ class BatteryDriver:
 class BatteryStatus:
     def __init__(self, data=None):
         if data:
-            (power_jetson, power_12v, power_5v, power_odrive, battery_capacity) = struct.unpack('BBBBB', data[0:5])
+            (power_jetson, power_12v, power_5v, power_odrive, battery_percentage) = struct.unpack('BBBBB', data[0:5])
             (jetson_current, loop_cnt) = struct.unpack('<HI', data[5:11])
             (shutdown, lowpower_shutdown) = struct.unpack('BB', data[11:13])
             # do something here
@@ -245,7 +245,7 @@ class BatteryStatus:
             self.power_12v = power_12v
             self.power_5v = power_5v
             self.power_odrive = power_odrive
-            self.battery_capacity = battery_capacity
+            self.battery_percentage = battery_percentage
             self.jetson_current = jetson_current
             self.loop_cnt = loop_cnt
             self.shutdown = shutdown
@@ -255,7 +255,7 @@ class BatteryStatus:
             self.power_12v = -1
             self.power_5v = -1
             self.power_odrive = -1
-            self.battery_capacity = -1
+            self.battery_percentage = -1
             self.jetson_current = -1
             self.loop_cnt = 0
             self.shutdown = 0
@@ -296,11 +296,11 @@ class BatteryStatus:
         return {
             'name': "Battery Control",
             'level': level,
-            'message': percent(self.battery_capacity),
+            'message': percent(self.battery_percentage),
             'hardware_id': "cabot2-ace-battery-control",
             'values': [{
                 'key': 'Battery Capacity',
-                'value': percent(self.battery_capacity)
+                'value': percent(self.battery_percentage)
             },{
                 'key': '12V power',
                 'value': on_off(self.power_12v)
