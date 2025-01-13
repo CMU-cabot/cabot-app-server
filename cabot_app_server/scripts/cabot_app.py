@@ -40,7 +40,7 @@ import tcp
 from cabot_common import util
 from cabot_log_report import LogReport
 from cabot_msgs.srv import Speak
-import std_msgs.msg
+import sensor_msgs.msg
 
 MTU_SIZE = 2**10  # could be 2**15, but 2**10 is enough
 CHAR_WRITE_MAX_SIZE = 512  # should not be exceeded this value
@@ -190,24 +190,46 @@ class CaBotManager():
         if self.stop_run:
             self.stop_run.set()
 
-    # BatteryDriverDelegate start
-    def battery_status(self, msg):
+    def battery_state(self, msg):
         class Dummy():
-            def __init__(self, json):
-                self._json = json
+            def __init__(self, msg):
+                def percent(value):
+                    if value >= 0:
+                        return "{:.0f}%".format(value)
+                    else:
+                        return "Unknown"
+
+                level = 0
+                if msg.percentage <= 20:
+                    level = 1
+                if msg.percentage <= 10:
+                    level = 2
+                self._json = {
+                    'name': "Battery Control",
+                    'level': level,
+                    'message': percent(msg.percentage),
+                    'hardware_id': msg.header.frame_id,
+                    'values': [{
+                        'key': 'Battery Percentage',
+                        'value': percent(msg.percentage)
+                    }]
+                }
+                common.logger.info(self._json)
+
             @property
             def json(self):
                 return self._json
+        self._battery_status = Dummy(msg)
 
-        status = json.loads(msg.data)
-        self._battery_status = Dummy(status)
+        """ TODO
         for value in status['values']:
             if (value['key'] == 'Shutdown Request' and value['value'] != '0') or \
                 (value['key'] == 'Lowpower Shutdown Request' and value['value'] != '0'):
                 common.logger.info("shutdown requested")
                 self.stop()
                 self.poweroffPC()
-    # BatteryDriverDelegate end
+        """
+
 
     def add_log_request(self, request, callback, output=True):
         self._log_report.add_to_queue(request, callback, output)
@@ -468,7 +490,7 @@ async def main():
         return res
 
     common.cabot_node_common.create_service(Speak, '/speak', handleSpeak)
-    common.cabot_node_common.create_subscription(std_msgs.msg.String, '/ace_battery_status', cabot_manager.battery_status, 10)
+    common.cabot_node_common.create_subscription(sensor_msgs.msg.BatteryState, '/battery_state', cabot_manager.battery_state, 10)
 
     global tcp_server_thread
     try:
