@@ -40,6 +40,7 @@ import tcp
 from cabot_common import util
 from cabot_log_report import LogReport
 from cabot_msgs.srv import Speak
+from std_srvs.srv import Trigger
 import sensor_msgs.msg
 
 MTU_SIZE = 2**10  # could be 2**15, but 2**10 is enough
@@ -195,14 +196,14 @@ class CaBotManager():
             def __init__(self, msg):
                 def percent(value):
                     if value >= 0:
-                        return "{:.0f}%".format(value)
+                        return "{:.0f}%".format(value * 100)
                     else:
                         return "Unknown"
 
                 level = 0
-                if msg.percentage <= 20:
+                if msg.percentage <= 0.2:
                     level = 1
-                if msg.percentage <= 10:
+                if msg.percentage <= 0.1:
                     level = 2
                 self._json = {
                     'name': "Battery Control",
@@ -221,15 +222,8 @@ class CaBotManager():
                 return self._json
         self._battery_status = Dummy(msg)
 
-        """ TODO
-        for value in status['values']:
-            if (value['key'] == 'Shutdown Request' and value['value'] != '0') or \
-                (value['key'] == 'Lowpower Shutdown Request' and value['value'] != '0'):
-                common.logger.info("shutdown requested")
-                self.stop()
-                self.poweroffPC()
-        """
-
+    def shutdown_callback(self, msg):
+        self.poweroffPC()
 
     def add_log_request(self, request, callback, output=True):
         self._log_report.add_to_queue(request, callback, output)
@@ -491,6 +485,7 @@ async def main():
 
     common.cabot_node_common.create_service(Speak, '/speak', handleSpeak)
     common.cabot_node_common.create_subscription(sensor_msgs.msg.BatteryState, '/battery_state', cabot_manager.battery_state, 10)
+    common.cabot_node_common.create_service(Trigger, "/shutdown", cabot_manager.shutdown_callback)
 
     global tcp_server_thread
     try:
