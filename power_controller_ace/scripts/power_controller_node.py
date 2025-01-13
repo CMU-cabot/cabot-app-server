@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 
 import os
-import json
+import math
 import logging
 import rclpy
 import rclpy.node
-from std_srvs.srv import Empty, SetBool
-import sensor_msgs.msg
+from std_srvs.srv import Empty, SetBool, Trigger
+from sensor_msgs.msg import BatteryState
 import threading
 import traceback
 
@@ -28,21 +28,29 @@ class BatteryDriverNode(rclpy.node.Node):
         self.service1 = self.create_service(SetBool, 'set_12v_power', self.set_12v_power)
         self.service2 = self.create_service(SetBool, 'set_5v_power', self.set_5v_power)
         self.service3 = self.create_service(SetBool, 'set_odrive_power', self.set_odrive_power)
-        self.service4 = self.create_service(Empty, 'shutdown', self.shutdown)
+        self.shutdown_client = self.create_client(Trigger, 'shutdown')
+        # self.service4 = self.create_service(Empty, 'shutdown', self.shutdown)
         # self.service5 = self.create_service(cabot_msgs.msg.SetUInt8, '/ace_battery_control/set_lowpower_shutdown_threshold', self.set_lowpower_shutdown_threshold)
         # self.status_pub = self.create_publisher(std_msgs.msg.String, "/ace_battery_status", 10) # TODO: temporal - should be fixed
-        self.state_pub = self.create_publisher(sensor_msgs.msg.BatteryState, "battery_state", 10)
+        self.state_pub = self.create_publisher(BatteryState, "battery_state", 10)
 
     def battery_status(self, status: BatteryStatus):
-        msg = sensor_msgs.msg.BatteryState()
+        msg = BatteryState()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "cabot2-ace-battery-control"
-        msg.percentage = float(status.battery_percentage)
-        self.state_pub.publish(msg)
+        msg.percentage = float(status.battery_percentage / 100.0)
+        msg.voltage = 36.0  # fixed value
+        msg.current = math.nan  # Current not available
+        msg.charge = math.nan  # Charge not available
+        msg.capacity = math.nan  # Capacity not available
+        msg.design_capacity = math.nan  # Design capacity not available
+        msg.temperature = math.nan  # Temperature not available
+        msg.power_supply_status = BatteryState.POWER_SUPPLY_STATUS_UNKNOWN
+        msg.power_supply_health = BatteryState.POWER_SUPPLY_HEALTH_UNKNOWN
+        msg.power_supply_technology = BatteryState.POWER_SUPPLY_TECHNOLOGY_LION
+        msg.present = True
 
-        # msg = std_msgs.msg.String()
-        # msg.data = json.dumps(status.json)
-        # self.status_pub.publish(msg)
+        self.state_pub.publish(msg)
         if status.shutdown:
             logger.info("shutdown requested")
         if status.lowpower_shutdown:
