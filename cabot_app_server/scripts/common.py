@@ -22,15 +22,12 @@
 
 import base64
 import math
-import os
 import re
 import time
 import json
 import threading
 import traceback
 import logging
-import subprocess
-from uuid import UUID
 from collections import deque
 
 import rclpy
@@ -45,30 +42,30 @@ from sensor_msgs.msg import CompressedImage
 from tf_transformations import euler_from_quaternion
 
 from mf_localization_msgs.srv import RestartLocalization
-from cabot_msgs.srv import Speak
 from cabot_msgs.msg import Log, PoseLog
 
 from cabot_common import util
 from cabot_common.event import BaseEvent
 from cabot_ui.event import NavigationEvent
-from cabot_log_report import LogReport
+
 
 CABOT_BLE_VERSION = "20230222"
 
 ble_manager = None
 
-DEBUG=False
+DEBUG = False
 
-### Debug
+# Debug
+
+
 def set_debug_mode():
-    from logging import StreamHandler, Formatter
-
     for key in logging.common.logger.manager.common.loggerDict:
-        #for key in ["pygatt.device"]:
+        # for key in ["pygatt.device"]:
         try:
             logging.common.logger.manager.common.loggerDict[key].setLevel(logging.DEBUG)
-        except:
+        except:  # noqa: E722
             pass
+
 
 if DEBUG:
     set_debug_mode()
@@ -82,6 +79,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
+
 def activity_log(category="", text="", memo=""):
     now = Clock(clock_type=ClockType.ROS_TIME).now()
     logger.info("category={}, text={}, memo={}".format(category, text, memo))
@@ -93,23 +91,29 @@ def activity_log(category="", text="", memo=""):
         log_msg.memo = memo
 
         cabot_node_common.pub_node.cabot_activity_log_pub(log_msg)
-    except:
+    except:  # noqa: E722
         logger.info(traceback.format_exc())
+
 
 diagnostics = []
 event_handlers = []
+
+
 def add_event_handler(handler):
     global event_handlers
-    if not handler in event_handlers:
+    if handler not in event_handlers:
         event_handlers.append(handler)
+
 
 def remove_event_handler(handler):
     global event_handlers
     event_handlers.remove(handler)
 
+
 def clear_event_handler():
     global event_handlers
     event_handlers.clear()
+
 
 @util.setInterval(0.2)
 def send_touch():
@@ -117,13 +121,14 @@ def send_touch():
         message = message_buffer.pop()
     else:
         message = -1
-    
+
     global event_handlers
     if event_handlers.count == 0:
         logger.error("There is no event_handler instance")
 
     for handler in event_handlers:
         handler.handleTouchCallback(message)
+
 
 @util.setInterval(1)
 def send_location():
@@ -133,8 +138,10 @@ def send_location():
         for handler in event_handlers:
             handler.handleLocationCallback(location)
 
+
 send_touch()
 send_location()
+
 
 class BLESubChar:
     def __init__(self, owner, uuid, indication=False, extra_callback=None):
@@ -161,7 +168,7 @@ class BLESubChar:
                     self.callback(handle, value)
             target.subscribe(self.uuid, callback_wrapper, indication=self.indication)
             self.valid = True
-        except:
+        except:  # noqa: E722
             logger.error(traceback.format_exc())
             logger.info("could not connect to char %s", self.uuid)
 
@@ -176,7 +183,7 @@ class CabotLogChar(BLESubChar):
         try:
             data = json.loads(value)
             activity_log(**data)
-        except:
+        except:  # noqa: E722
             activity_log("ble", value, "")
 
     def not_found(self):
@@ -282,6 +289,7 @@ class HeartbeatChar(BLESubChar):
         cabot_node_common.pub_node.ble_hb_topic.publish(msg)
         self.owner.last_heartbeat = time.time()
 
+
 class StoreChar(BLESubChar):
     def __init__(self, owner, uuid):
         super().__init__(owner, uuid)
@@ -353,7 +361,7 @@ class SpeakChar(BLENotifyChar):
 
 class EventChars(BLENotifyChar):
     def __init__(self, owner, navi_uuid):
-        super().__init__(owner, None) # uuid is not set because EventChars uses multiple uuids.
+        super().__init__(owner, None)  # uuid is not set because EventChars uses multiple uuids.
         self.navi_uuid = navi_uuid
 
     def handleEventCallback(self, msg, request_id):
@@ -375,9 +383,10 @@ class EventChars(BLENotifyChar):
         jsonText = json.dumps(req, separators=(',', ':'))
         self.send_text(self.navi_uuid, jsonText)
 
+
 class TouchChars(BLENotifyChar):
     def __init__(self, owner, uuid):
-        super().__init__(owner, None) # uuid is not set because EventChars uses multiple uuids.
+        super().__init__(owner, None)  # uuid is not set because EventChars uses multiple uuids.
         self.uuid = uuid
 
     def handleTouchCallback(self, msg):
@@ -455,7 +464,7 @@ class DeviceStatus:
 
     def set_json(self, text):
         try:
-            data=json.loads(text)
+            data = json.loads(text)
             self.devices = []
             if 'devices' in data:
                 for dev in data['devices']:
@@ -472,7 +481,7 @@ class DeviceStatus:
                             'value': dev[key]
                         })
                     self.devices.append(device)
-        except:
+        except:  # noqa: E722
             logger.info(traceback.format_exc())
 
     @property
@@ -481,6 +490,7 @@ class DeviceStatus:
             'level': self.level,
             'devices': self.devices
         }
+
 
 class SystemStatus:
     def __init__(self):
@@ -519,6 +529,7 @@ class SystemStatus:
             'diagnostics': self.diagnostics
         }
 
+
 class CabotNode_Pub(Node):
     def __init__(self):
         super().__init__('cabot_app_server_pub', start_parameter_services=False)
@@ -535,6 +546,7 @@ class CabotNode_Pub(Node):
 
     def cabot_activity_log_pub(self, log_msg):
         self.activity_log_pub.publish(log_msg)
+
 
 class CabotNode_Sub(Node):
     def __init__(self):
@@ -564,8 +576,8 @@ class CabotNode_Sub(Node):
                     diagnostic['values'].pop(i)
                     continue
                 try:
-                    value['value'] = "%.2f"%(float(value['value']))
-                except:
+                    value['value'] = "%.2f" % (float(value['value']))
+                except:  # noqa: E722
                     pass
 
     def cabot_event_callback(self, msg):
@@ -590,6 +602,7 @@ class CabotNode_Sub(Node):
         global last_location
         last_location = msg
 
+
 class CabotNode_Common():
     def __init__(self):
         rclpy.init()
@@ -607,7 +620,7 @@ class CabotNode_Common():
         while rclpy.ok():
             try:
                 self.executor.spin_once()
-            except:
+            except:  # noqa: E722
                 logger.error(traceback.format_exc())
         self.pub_node.destroy_node()
         self.sub_node.destroy_node()
@@ -620,6 +633,7 @@ class CabotNode_Common():
 
     def create_subscription(self, type, name, callback, qos):
         self.sub_node.create_subscription(type, name, callback, qos)
+
 
 cabot_node_common = CabotNode_Common()
 cabot_node_common.create_nodes()
