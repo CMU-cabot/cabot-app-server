@@ -22,9 +22,21 @@ logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
 
 class BatteryDriverNode(rclpy.node.Node):
-    def __init__(self, driver):
-        super().__init__("battery_driver_node", start_parameter_services=False)
-        self.driver = driver
+    def __init__(self):
+        super().__init__("power_controller")
+
+        port_name = self.declare_parameter("port_name", os.environ.get('CABOT_ACE_BATTERY_PORT', 'dev/ttyACM0')).value
+        baud = self.declare_parameter("baud", int(os.environ.get('CABOT_ACE_BATTERY_BAUD', '115200'))).value
+        self.driver = BatteryDriver(port_name, baud)
+        self.battery_thread = threading.Thread(target=self.driver.start)
+        self.battery_thread.start()
+        self.driver.delegate = self
+
+        lowpower_shutdown_threshold = self.declare_parameter("lowpower_shutdown_threshold", 5)
+        self.driver.set_lowpower_shutdown_threshold(lowpower_shutdown_threshold)
+
+        logger.info(f"{port_name=}, {baud=}, {lowpower_shutdown_threshold=}")
+
         self.connected = False
         self.systemctl_lock = threading.Lock()
 
@@ -34,14 +46,13 @@ class BatteryDriverNode(rclpy.node.Node):
         self.service3 = self.create_service(SetBool, 'set_odrive_power', self.set_odrive_power)
         self.shutdown_service = self.create_service(Trigger, 'shutdown', self.shutdown_callback)
         self.state_pub = self.create_publisher(BatteryState, "battery_state", 10)
-        self.declare_parameter("lowpower_shutdown_threshold", 10)
-        self.add_on_set_parameters_callback(self.param_callback)
+
         self.jetson_poweroff_commands = None
-        jetson_user = os.environ['CABOT_JETSON_USER'] if 'CABOT_JETSON_USER' in os.environ else "cabot"
-        jetson_config = os.environ['CABOT_JETSON_CONFIG'] if 'CABOT_JETSON_CONFIG' in os.environ else None
-        if jetson_config is not None:
-            id_file = os.environ['CABOT_ID_FILE'] if 'CABOT_ID_FILE' in os.environ else ""
-            id_dir = os.environ['CABOT_ID_DIR'] if 'CABOT_ID_DIR' in os.environ else ""
+        jetson_user = self.declare_parameter("jetson_user", int(os.environ.get('CABOT_JETSON_USER', 'cabot'))).value
+        jetson_config = self.declare_parameter("jetson_config", int(os.environ.get('CABOT_JETSON_CONFIG', ''))).value
+        if jetson_config:
+            id_file = self.declare_parameter("id_file", int(os.environ.get('CABOT_ID_FILE', ''))).value
+            id_dir = self.declare_parameter("id_dir", int(os.environ.get('CABOT_ID_DIR', ''))).value
             id_file_path = os.path.join(id_dir, id_file)
             if not os.path.exists(id_file_path):
                 logger.error("ssh id file does not exist '{}'".format(id_file_path))
@@ -52,7 +63,7 @@ class BatteryDriverNode(rclpy.node.Node):
             for item in items:
                 split_item = item.split(':')
                 if len(split_item) != 3:
-                    logger.error("Invalid value of CABOT_JETSON_CONFIG is found '{}'".format(item))
+                    logger.error("Invalid value of jetson_config(CABOT_JETSON_CONFIG) is found '{}'".format(item))
                     sys.exit()
                 host = split_item[1]
 
@@ -67,6 +78,10 @@ class BatteryDriverNode(rclpy.node.Node):
                     continue
 
                 self.jetson_poweroff_commands.append(["ssh", "-i", id_file_path, jetson_user + "@" + host, "sudo poweroff"])
+
+    def stop(self):
+        self.driver.stop()
+        self.battery_thread.join()
 
     def shutdown_callback(self, req, res):
         self.shutdown()
@@ -94,12 +109,6 @@ class BatteryDriverNode(rclpy.node.Node):
             if lock is not None:
                 lock.release()
         return result
-
-    def param_callback(self, params):
-        for param in params:
-            if param.name == "lowpower_shutdown_threshold":
-                logger.info(f"{param.name}: {param.value}")
-                self.driver.set_lowpower_shutdown_threshold(param.value)
 
     def battery_status(self, status: BatteryStatus):
         msg = BatteryState()
@@ -162,23 +171,12 @@ class BatteryDriverNode(rclpy.node.Node):
 
 def main():
     rclpy.init()
-
-    port_name = os.environ['CABOT_ACE_BATTERY_PORT'] if 'CABOT_ACE_BATTERY_PORT' in os.environ else '/dev/ttyACM0'
-    baud = int(os.environ['CABOT_ACE_BATTERY_BAUD']) if 'CABOT_ACE_BATTERY_BAUD' in os.environ else 115200
-    driver = BatteryDriver(port_name, baud)
-    battery_thread = threading.Thread(target=driver.start)
-    battery_thread.start()
-    node = BatteryDriverNode(driver)
-    driver.delegate = node
-
-    logger.info(f"{port_name=}, {baud=}")
-
+    node = BatteryDriverNode()
     try:
         rclpy.spin(node)
     except:  # noqa: E722
         logger.error(traceback.format_exc())
-    driver.stop()
-    battery_thread.join()
+    node.stop()
 
 
 if __name__ == "__main__":
