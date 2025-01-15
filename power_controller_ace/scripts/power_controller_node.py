@@ -32,7 +32,7 @@ class BatteryDriverNode(rclpy.node.Node):
         self.battery_thread.start()
         self.driver.delegate = self
 
-        lowpower_shutdown_threshold = self.declare_parameter("lowpower_shutdown_threshold", 5)
+        lowpower_shutdown_threshold = self.declare_parameter("lowpower_shutdown_threshold", 5).value
         self.driver.set_lowpower_shutdown_threshold(lowpower_shutdown_threshold)
 
         logger.info(f"{port_name=}, {baud=}, {lowpower_shutdown_threshold=}")
@@ -48,11 +48,11 @@ class BatteryDriverNode(rclpy.node.Node):
         self.state_pub = self.create_publisher(BatteryState, "battery_state", 10)
 
         self.jetson_poweroff_commands = None
-        jetson_user = self.declare_parameter("jetson_user", int(os.environ.get('CABOT_JETSON_USER', 'cabot'))).value
-        jetson_config = self.declare_parameter("jetson_config", int(os.environ.get('CABOT_JETSON_CONFIG', ''))).value
+        jetson_user = self.declare_parameter("jetson_user", os.environ.get('CABOT_JETSON_USER', 'cabot')).value
+        jetson_config = self.declare_parameter("jetson_config", os.environ.get('CABOT_JETSON_CONFIG', '')).value
         if jetson_config:
-            id_file = self.declare_parameter("id_file", int(os.environ.get('CABOT_ID_FILE', ''))).value
-            id_dir = self.declare_parameter("id_dir", int(os.environ.get('CABOT_ID_DIR', ''))).value
+            id_file = self.declare_parameter("id_file", os.environ.get('CABOT_ID_FILE', 'id_ed25519')).value
+            id_dir = self.declare_parameter("id_dir", os.environ.get('CABOT_ID_DIR', '~/.ssh')).value
             id_file_path = os.path.join(id_dir, id_file)
             if not os.path.exists(id_file_path):
                 logger.error("ssh id file does not exist '{}'".format(id_file_path))
@@ -78,6 +78,7 @@ class BatteryDriverNode(rclpy.node.Node):
                     continue
 
                 self.jetson_poweroff_commands.append(["ssh", "-i", id_file_path, jetson_user + "@" + host, "sudo poweroff"])
+                logger.info(F"added shutdown command for {host}")
 
     def stop(self):
         self.driver.stop()
