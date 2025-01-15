@@ -169,7 +169,7 @@ class AppClient():
         return f"AppClient: client_id={self.client_id}, type={self.type}"
 
 class CaBotManager():
-    def __init__(self, jetson_poweroff_commands=None):
+    def __init__(self):
         self._device_status = DeviceStatus()
         self._cabot_system_status = SystemStatus()
         self._battery_status = None
@@ -179,11 +179,10 @@ class CaBotManager():
         self.stop_run = None
         self.check_interval = 5
         self.run_count = 0
-        self._jetson_poweroff_commands = jetson_poweroff_commands
         self._client_map = {}
 
     def run(self, start=False):
-        self.start_flag=start
+        self.start_flag = start
         self._run_once()
         self.stop_run = self._run()
 
@@ -221,9 +220,6 @@ class CaBotManager():
             def json(self):
                 return self._json
         self._battery_status = Dummy(msg)
-
-    def shutdown_callback(self, msg):
-        self.poweroffPC()
 
     def add_log_request(self, request, callback, output=True):
         self._log_report.add_to_queue(request, callback, output)
@@ -302,12 +298,8 @@ class CaBotManager():
         self._call(["sudo", "systemctl", "reboot"], lock=self.systemctl_lock)
 
     def poweroffPC(self):
-        if self._jetson_poweroff_commands is not None:
-            for command in self._jetson_poweroff_commands:
-                common.logger.info("send shutdown request to jetson: %s", str(command))
-                self._call(command, lock=self.systemctl_lock)
-
-        self._call(["sudo", "systemctl", "poweroff"], lock=self.systemctl_lock)
+        req = Trigger.Request()
+        shutdown_client.call(req)
 
     def startCaBot(self):
         self._call(["systemctl", "--user", "start", "cabot"], lock=self.systemctl_lock)
@@ -426,38 +418,6 @@ async def main():
     common.logger.info(f"Use BLE = {use_ble}, Use TCP = {use_tcp}")
 
     cabot_manager = CaBotManager()
-    jetson_poweroff_commands = None
-    jetson_user = os.environ['CABOT_JETSON_USER'] if 'CABOT_JETSON_USER' in os.environ else "cabot"
-    jetson_config = os.environ['CABOT_JETSON_CONFIG'] if 'CABOT_JETSON_CONFIG' in os.environ else None
-    if jetson_config is not None:
-        id_file = os.environ['CABOT_ID_FILE'] if 'CABOT_ID_FILE' in os.environ else ""
-        id_dir = os.environ['CABOT_ID_DIR'] if 'CABOT_ID_DIR' in os.environ else ""
-        id_file_path = os.path.join(id_dir, id_file)
-        if not os.path.exists(id_file_path):
-            common.logger.error("ssh id file does not exist '{}'".format(id_file_path))
-            sys.exit()
-
-        jetson_poweroff_commands = []
-        items = jetson_config.split()
-        for item in items:
-            split_item = item.split(':')
-            if len(split_item)!=3:
-                common.logger.error("Invalid value of CABOT_JETSON_CONFIG is found '{}'".format(item))
-                sys.exit()
-
-            result = subprocess.call(["ssh", "-i", id_file_path, jetson_user + "@" + split_item[1], "exit"])
-            if result != 0:
-                common.logger.error("Cannot connect Jetson host, please check ssh config. user:{}, host:{}, ssh key file:{}".format(jetson_user, split_item[1], id_file_path))
-                continue
-
-            result = subprocess.call(["ssh", "-i", id_file_path, jetson_user + "@" + split_item[1], "sudo poweroff -w"])
-            if result != 0:
-                common.logger.error("Cannot call poweroff on Jetson host, please check sudoer config. user:{}, host:{}".format(jetson_user, split_item[1], id_file_path))
-                continue
-
-            jetson_poweroff_commands.append(["ssh", "-i", id_file_path, jetson_user + "@" + split_item[1], "sudo poweroff"])
-
-    cabot_manager = CaBotManager(jetson_poweroff_commands=jetson_poweroff_commands)
     cabot_manager.run(start=start_at_launch)
 
     if use_ble:
@@ -472,6 +432,7 @@ async def main():
     global tcp_server
     global ble_manager
     global quit_flag
+    global shutdown_client
 
     def handleSpeak(req, res):
         res.result = False
@@ -485,7 +446,7 @@ async def main():
 
     common.cabot_node_common.create_service(Speak, '/speak', handleSpeak)
     common.cabot_node_common.create_subscription(sensor_msgs.msg.BatteryState, '/battery_state', cabot_manager.battery_state, 10)
-    common.cabot_node_common.create_service(Trigger, "/shutdown", cabot_manager.shutdown_callback)
+    shutdown_client = common.cabot_node_common.create_client(Trigger, "/shutdown")
 
     global tcp_server_thread
     try:

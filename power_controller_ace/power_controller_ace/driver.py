@@ -13,13 +13,13 @@ import time
 import serial
 import argparse
 
-from cabot_common import util
 
-DEBUG=False
+DEBUG = False
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+
 
 class BatteryDriverDelegate(object):
     def battery_status(self, status):
@@ -40,7 +40,6 @@ class BatteryDriver:
         self.read_lock = threading.RLock()
         self.is_alive = True
 
-
     def _open_serial(self):
         logger.info("opening serial %s", self.port_name)
         while self.is_alive:
@@ -50,8 +49,7 @@ class BatteryDriver:
             except serial.SerialException as e:
                 logging.error("%s", e)
                 time.sleep(3)
-        logger.info("serial port opened");
-
+        logger.info("serial port opened")
 
     def start(self):
         sleep_time = 3
@@ -59,40 +57,34 @@ class BatteryDriver:
             try:
                 self._open_serial()
                 self._run()
-            except KeyboardInterrupt as e:
+            except KeyboardInterrupt:
                 logger.info("KeyboardInterrupt")
                 break
             except serial.SerialException as e:
-                error_msg = str(e)
                 logger.error(e)
                 time.sleep(sleep_time)
             except OSError as e:
-                error_msg = str(e)
                 logger.error(e)
                 traceback.print_exc(file=sys.stdout)
                 time.sleep(sleep_time)
             except IOError as e:
-                error_msg = str(e)
                 logger.error(e)
                 time.sleep(sleep_time)
-            except termios.error as e:
-                error_msg = str(e)
+            except termios.error:
                 logger.error("connection disconnected")
                 time.sleep(sleep_time)
             except SystemExit as e:
                 logger.error(e)
                 break
-            except:
+            except:  # noqa: E722
                 logger.error(traceback.format_exc())
                 traceback.print_exc(file=sys.stdout)
                 sys.exit()
             finally:
                 self.stop()
 
-
     def stop(self):
         self.is_alive = False
-
 
     def checksum(data):
         temp = 0
@@ -100,38 +92,29 @@ class BatteryDriver:
             temp += d
         return 0xFF - (0xFF & temp)
 
-
     def data_send_start_command(self):
-        self.send_command(0x31) # '1'
-
+        self.send_command(0x31)  # '1'
 
     def data_send_stop_command(self):
-        self.send_command(0x32) # '2'
-
+        self.send_command(0x32)  # '2'
 
     def turn_jetson_switch_on(self):
-        self.send_command(0x33) # '3'
-
+        self.send_command(0x33)  # '3'
 
     def set_12v_power(self, on_off):
-        self.send_command(0x34, on_off) # '4' ON(1) OFF(0)
-
+        self.send_command(0x34, on_off)  # '4' ON(1) OFF(0)
 
     def set_5v_power(self, on_off):
-        self.send_command(0x35, on_off) # '5' ON(1) OFF(0)
-
+        self.send_command(0x35, on_off)  # '5' ON(1) OFF(0)
 
     def set_odrive_power(self, on_off):
-        self.send_command(0x36, on_off) # '6' ON(1) OFF(0)
-
+        self.send_command(0x36, on_off)  # '6' ON(1) OFF(0)
 
     def shutdown(self):
-        self.send_command(0x37) # '7'
-
+        self.send_command(0x37)  # '7'
 
     def set_lowpower_shutdown_threshold(self, threshold):
-        self.send_command(0x38, threshold) # '8' 0~100(%)
-
+        self.send_command(0x38, threshold)  # '8' 0~100(%)
 
     def send_command(self, command, arg0=0x00):
         data = bytearray(13)
@@ -161,16 +144,14 @@ class BatteryDriver:
                 except RuntimeError as exc:
                     logger.error('Write thread exception: %s' % exc)
                     break
-    
+
     def _process_write_queue(self):
         while self.is_alive:
             self._process_write_queue_once()
 
-
     def _write(self, data):
         with self.write_lock:
             self.port.write(data)
-
 
     def _tryRead(self, length):
         try:
@@ -189,12 +170,11 @@ class BatteryDriver:
         except Exception as e:
             raise IOError("Serial Port read failure: %s" % e)
 
-
     def _run(self):
         if self.write_thread is None:
             self.write_thread = threading.Thread(target=self._process_write_queue)
             self.write_thread.daemon = True
-            self.write_thread.start()            
+            self.write_thread.start()
 
         self.data_send_stop_command()
         time.sleep(1)
@@ -215,23 +195,21 @@ class BatteryDriver:
                 if header_count == 2:
                     header_count = 0
                     state = 1
-            if state == 1: # read command
+            if state == 1:  # read command
                 cmd = self._tryRead(2)
-                if cmd[0] == 0x30: # fixed command
+                if cmd[0] == 0x30:  # fixed command
                     data = self._tryRead(cmd[1])
                     checksum = int.from_bytes(self._tryRead(1), 'little')
                     if checksum == BatteryDriver.checksum(data):
                         info = BatteryStatus(data)
-                        #logger.info(info)
+                        # logger.info(info)
                         if self.delegate:
                             self.delegate.battery_status(info)
                 state = 0
 
-
     def process_command_once(self):
         self._open_serial()
         self._process_write_queue_once()
-
 
 
 class BatteryStatus:
@@ -261,7 +239,6 @@ class BatteryStatus:
             self.shutdown = 0
             self.lowpower_shutdown = 0
 
-
     def __str__(self):
         temp = ""
         for key in self.__dict__:
@@ -276,11 +253,13 @@ class BatteryStatus:
             if value == 0:
                 return "OFF"
             return "UNKNOWN"
+
         def percent(value):
             if value >= 0:
                 return "{}%".format(value)
             else:
                 return "Unknown"
+
         def milliampere(value):
             if value >= 0:
                 return "{}mA".format(value)
@@ -301,28 +280,28 @@ class BatteryStatus:
             'values': [{
                 'key': 'Battery Capacity',
                 'value': percent(self.battery_percentage)
-            },{
+            }, {
                 'key': '12V power',
                 'value': on_off(self.power_12v)
-            },{
+            }, {
                 'key': '5V power',
                 'value': on_off(self.power_5v)
-            },{
+            }, {
                 'key': 'ODrive power',
                 'value': on_off(self.power_odrive)
-            },{
+            }, {
                 'key': 'Jetson power',
                 'value': on_off(self.power_jetson)
-            },{
+            }, {
                 'key': 'Jetson current',
                 'value': milliampere(self.jetson_current)
-            },{
+            }, {
                 'key': 'Shutdown Request',
                 'value': str(self.shutdown)
-            },{
+            }, {
                 'key': 'Lowpower Shutdown Request',
                 'value': str(self.lowpower_shutdown)
-            },{
+            }, {
                 'key': 'Loop count',
                 'value': str(self.loop_cnt)
             }]
@@ -331,24 +310,26 @@ class BatteryStatus:
 
 class PrintDelegate(BatteryDriverDelegate):
     def __init__(self):
-        self.count=0
+        self.count = 0
+
     def battery_status(self, status):
-        self.count+=1
-        if self.count%10==0:
+        self.count += 1
+        if self.count % 10 == 0:
             print(status)
             print("------")
+
 
 def main():
     port_name = os.environ['CABOT_ACE_BATTERY_PORT'] if 'CABOT_ACE_BATTERY_PORT' in os.environ else '/dev/ttyACM0'
     baud = int(os.environ['CABOT_ACE_BATTERY_BAUD']) if 'CABOT_ACE_BATTERY_BAUD' in os.environ else 115200
-    
+
     driver = BatteryDriver(port_name, baud, PrintDelegate())
-    
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-od","--odrive_power")
-    
+    parser.add_argument("-od", "--odrive_power")
+
     args = parser.parse_args()
-    
+
     if args.odrive_power:
         driver.set_odrive_power(0 if "0" == args.odrive_power else 1)
         driver.process_command_once()
