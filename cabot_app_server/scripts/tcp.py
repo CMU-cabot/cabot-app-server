@@ -20,30 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import gzip
-import math
-import queue
-import os
 import time
-import json
-import threading
 import traceback
-import logging
-import re
-import signal
-import subprocess
-import sys
-from uuid import UUID
 from flask import Flask
 import socketio
-
 import common
 
-import roslibpy
-
-from cabot_common import util
-from cabot_common.event import BaseEvent
-from cabot_ui.event import NavigationEvent
 
 class CaBotTCP():
 
@@ -54,17 +36,18 @@ class CaBotTCP():
         self.cabot_manager = cabot_manager
         self.manage_cabot_char = common.CabotManageChar(self, "manage_cabot", cabot_manager)
         self.log_request_char = common.CabotLogRequestChar(self, "log_request",
-                                                            cabot_manager, 
-                                                            common.CabotLogResponseChar(self, "log_response"))
+                                                           cabot_manager,
+                                                           common.CabotLogResponseChar(self, "log_response"))
         self.log_char = common.CabotLogChar(self, "log", cabot_manager)
         self.summons_char = common.SummonsChar(self, "summons")
         self.destination_char = common.DestinationChar(self, "destination")
         self.heartbeat_char = common.HeartbeatChar(self, "heartbeat")
+
         class subchar_handler(socketio.Namespace):
             @self.sio.event
             def manage_cabot(sid, data):
                 self.manage_cabot_char.callback(0, data[0].encode("utf-8"))
-            
+
             @self.sio.event
             def log(sid, data):
                 self.log_char.callback(0, data[0].encode("utf-8"))
@@ -72,7 +55,7 @@ class CaBotTCP():
             @self.sio.event
             def summons(sid, data):
                 self.summons_char.callback(0, data[0].encode("utf-8"))
- 
+
             @self.sio.event
             def destination(sid, data):
                 self.destination_char.callback(0, data[0].encode("utf-8"))
@@ -122,7 +105,6 @@ class CaBotTCP():
             def disconnect(sid, reason):
                 common.logger.info(f"disconnect socket.io {reason=}")
 
-
         self.version_char = common.VersionChar(self, "cabot_version")
         self.name_char = common.NameChar(self, "cabot_name")
 
@@ -171,7 +153,6 @@ class CaBotTCP():
     def start(self):
         common.logger.info("CaBotTCP thread started")
         self.alive = True
-        start_time = time.time()
         try:
             self.device_status_char.start()
             self.system_status_char.start()
@@ -183,12 +164,11 @@ class CaBotTCP():
             common.logger.info("CaBotTCP listening...")
             self.app.run(host='0.0.0.0', port=5000)
 
-        except(KeyboardInterrupt, SystemExit):
+        except (KeyboardInterrupt, SystemExit):
             common.logger.info("stopping tcp server...")
             self.stop()
-        except:
+        except:  # noqa: E722
             common.logger.error(traceback.format_exc())
-
 
     def stop(self):
         common.logger.info("CaBotTCP thread stop")
@@ -197,8 +177,3 @@ class CaBotTCP():
         self.device_status_char.stop()
         self.system_status_char.stop()
         self.battery_status_char.stop()
-        #if self.wsgisrv is not None:
-        #    self.wsgisrv.stop()
-        #    self.wsgisrv.close()
-
-

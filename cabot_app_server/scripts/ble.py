@@ -55,7 +55,7 @@ class BLEDeviceManager:
         return running_tasks
 
     async def device_discovery(self):
-        service_uuids = [str(CABOT_BLE_UUID(0))]
+        # service_uuids = [str(CABOT_BLE_UUID(0))]  # do not use UUID service filter
         while self.alive:
             try:
                 common.logger.info(f"discover {self.bles=}")
@@ -238,19 +238,19 @@ class CaBotBLE:
         length1 = len(data)
         if length0 < length1:
             temp = bytearray(orig_data)
-            temp[0:0] = length0.to_bytes(2,"big")
-            temp[2:2] = int(0).to_bytes(2,"big")
+            temp[0:0] = length0.to_bytes(2, "big")
+            temp[2:2] = int(0).to_bytes(2, "big")
             return [temp]
         packet_size = size - 4
         packets = []
-        n = math.ceil(length1/packet_size)
-        for i in range(0,n):
-            temp = bytearray(data[i*packet_size:(i+1)*packet_size])
-            temp[0:0] = length1.to_bytes(2,"big")
-            temp[2:2] = (i*packet_size).to_bytes(2,"big")
-            #common.logger.info("packet[%d] = %d"%(i, len(temp)))
+        n = math.ceil(length1 / packet_size)
+        for i in range(0, n):
+            temp = bytearray(data[i * packet_size:(i + 1) * packet_size])
+            temp[0:0] = length1.to_bytes(2, "big")
+            temp[2:2] = (i * packet_size).to_bytes(2, "big")
+            # common.logger.info("packet[%d] = %d"%(i, len(temp)))
             packets.append(temp)
-        common.logger.info("data/gzip length = %d/%d (%.0f%%)", length1, length0, length1/length0*100.0)
+        common.logger.info("data/gzip length = %d/%d (%.0f%%)", length1, length0, length1 / length0 * 100.0)
         return packets
 
     async def check_queue(self):
@@ -272,7 +272,7 @@ class CaBotBLE:
                 if char:
                     await self.client.write_gatt_char(char.handle, packet, True)
                     common.logger.info("char_write %d bytes in %f seconds (%.2fKbps)",
-                                       total, (time.time()-start), total*8/(time.time()-start)/1024)
+                                       total, (time.time() - start), total * 8 / (time.time() - start) / 1024)
                     self.error_count = 0
                 else:
                     common.logger.error(f"characteristic {uuid=} is not implmented")

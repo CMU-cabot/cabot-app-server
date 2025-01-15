@@ -30,7 +30,7 @@ import time
 import base64
 import codecs
 
-DEBUG=False
+DEBUG = False
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ class LogReport:
         response = {
             "response_id": time.clock_gettime_ns(time.CLOCK_REALTIME),
             "type": request_type
-            }
+        }
         if request_type == "list":
             response["status"] = "NG" if self.canUploadReport() else "OK"
             response["log_list"] = []
@@ -122,7 +122,7 @@ class LogReport:
                     "nanoseconds": nanoseconds,
                     "is_report_submitted": is_report_submitted,
                     "is_uploaded_to_box": is_uploaded_to_box
-                    })
+                })
         elif request_type == "detail":
             # TODO: get title and detail by log_name
             log_name = request["log_name"]

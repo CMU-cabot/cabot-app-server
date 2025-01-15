@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import ctypes
 import asyncio
 import os
 import time
@@ -61,7 +62,7 @@ class DeviceStatus:
 
     def set_json(self, text):
         try:
-            data=json.loads(text)
+            data = json.loads(text)
             self.devices = []
             if 'devices' in data:
                 for dev in data['devices']:
@@ -78,7 +79,7 @@ class DeviceStatus:
                             'value': dev[key]
                         })
                     self.devices.append(device)
-        except:
+        except:  # noqa: E722
             common.logger.info(traceback.format_exc())
 
     def set_clients(self, clients):
@@ -111,6 +112,7 @@ class DeviceStatus:
 
     def stop(self):
         pass
+
 
 class SystemStatus:
     def __init__(self):
@@ -153,6 +155,7 @@ class SystemStatus:
         self.deactivating()
         self.diagnostics = []
 
+
 class AppClient():
     ALIVE_THRESHOLD = 3.0
 
@@ -167,6 +170,7 @@ class AppClient():
 
     def __str__(self):
         return f"AppClient: client_id={self.client_id}, type={self.type}"
+
 
 class CaBotManager():
     def __init__(self):
@@ -214,7 +218,6 @@ class CaBotManager():
                         'value': percent(msg.percentage)
                     }]
                 }
-                common.logger.info(self._json)
 
             @property
             def json(self):
@@ -272,7 +275,7 @@ class CaBotManager():
             else:
                 common.logger.info("check_service_active unknown status: %s", result.stdout.strip())
 
-        #global diagnostics
+        # global diagnostics
         self._cabot_system_status.set_diagnostics(common.diagnostics)
         common.diagnostics = []
 
@@ -287,7 +290,7 @@ class CaBotManager():
         try:
             common.logger.info("calling %s", str(command))
             result = subprocess.call(command)
-        except:
+        except:  # noqa: E722
             common.logger.error(traceback.format_exc())
         finally:
             if lock is not None:
@@ -298,8 +301,9 @@ class CaBotManager():
         self._call(["sudo", "systemctl", "reboot"], lock=self.systemctl_lock)
 
     def poweroffPC(self):
-        req = Trigger.Request()
-        shutdown_client.call(req)
+        if shutdown_client.wait_for_service(timeout_sec=1.0):
+            req = Trigger.Request()
+            shutdown_client.call(req)
 
     def startCaBot(self):
         self._call(["systemctl", "--user", "start", "cabot"], lock=self.systemctl_lock)
@@ -349,10 +353,11 @@ class CaBotManager():
         return clients
 
 
-quit_flag=False
+quit_flag = False
 tcp_server = None
 ble_manager = None
 tcp_server_thread = None
+
 
 def get_thread_traceback(thread_id):
     frame = sys._current_frames().get(thread_id)
@@ -361,8 +366,6 @@ def get_thread_traceback(thread_id):
     else:
         return "Thread not found"
 
-import ctypes
-import threading
 
 def terminate_thread(thread):
     if not thread.is_alive():
@@ -374,6 +377,7 @@ def terminate_thread(thread):
     elif res > 1:
         ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, 0)
         raise SystemError("PyThreadState_SetAsyncExc failed")
+
 
 def sigint_handler(sig, frame):
     common.logger.info("sigint_handler")
@@ -387,7 +391,7 @@ def sigint_handler(sig, frame):
             if tcp_server_thread:
                 try:
                     terminate_thread(tcp_server_thread)
-                except:
+                except:  # noqa: E722
                     common.logger.error(traceback.format_exc())
                 while tcp_server_thread.is_alive():
                     common.logger.info(f"wait tcp server thread {tcp_server_thread}")
@@ -396,12 +400,12 @@ def sigint_handler(sig, frame):
             if common.ros2_thread:
                 try:
                     rclpy.shutdown()
-                except:
+                except:  # noqa: E722
                     common.logger.error(traceback.format_exc())
                 while common.ros2_thread.is_alive():
                     common.logger.info(f"wait ros2 server thread {common.ros2_thread}")
                     common.ros2_thread.join(timeout=1)
-        except:
+        except:  # noqa: E722
             common.logger.error(traceback.format_exc())
     else:
         common.logger.error("Unexpected signal")
@@ -471,7 +475,7 @@ async def main():
                 time.sleep(1)
     except KeyboardInterrupt:
         common.logger.info("keyboard interrupt")
-    except:
+    except:  # noqa: E722
         common.logger.info(traceback.format_exc())
     cabot_manager.stop()
     common.logger.info("exiting the app")
