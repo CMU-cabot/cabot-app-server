@@ -114,7 +114,7 @@ class BatteryDriverNode(rclpy.node.Node):
     def battery_status(self, status: BatteryStatus):
         msg = BatteryState()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "cabot2-ace-battery-control"
+        msg.header.frame_id = "cabot-power-controller-ace"
         msg.percentage = float(status.battery_percentage / 100.0)
         msg.voltage = 36.0  # fixed value
         msg.current = math.nan  # Current not available
