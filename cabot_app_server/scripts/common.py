@@ -663,6 +663,9 @@ class CabotNode_Common():
     def create_service(self, type, name, callback):
         self.sub_node.create_service(type, name, callback)
 
+    def create_client(self, type, name):
+        return self.sub_node.create_client(type, name)
+
     def create_subscription(self, type, name, callback, qos):
         self.sub_node.create_subscription(type, name, callback, qos)
 
