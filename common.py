@@ -546,6 +546,7 @@ class CabotNode_Sub(Node):
         self.cabot_touch_sub = self.create_subscription(Int16, '/cabot/touch', self.cabot_touch_callback, 10)
         self.restart_localization_client = self.create_client(RestartLocalization, "/restart_localization")
         self.camera_image_sub = self.create_subscription(CompressedImage, '/camera/color/image_raw/compressed', self.camera_image_callback, 10)
+        self.camera_image_sub = self.create_subscription(CompressedImage, '/rs1/color/image_raw/compressed', self.camera_image_callback, 10)
         self.location_sub = self.create_subscription(PoseLog, '/cabot/pose_log', self.location_callback, 10)
 
     def diagnostic_agg_callback(self, msg):
