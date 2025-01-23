@@ -314,6 +314,14 @@ class VersionChar(BLENotifyChar):
         self.send_text(self.uuid, self.version)
 
 
+class NameChar(BLENotifyChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, uuid)
+
+    def notify(self):
+        self.send_text(self.uuid, os.getenv("CABOT_NAME", "unknown"))
+
+
 class StatusChar(BLENotifyChar):
     def __init__(self, owner, uuid, func, interval=5):
         super().__init__(owner, uuid)

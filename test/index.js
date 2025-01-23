@@ -22,6 +22,10 @@ sio.on("cabot_version", (data) => {
     document.getElementById("cabot_version").innerText = data;
 });
 
+sio.on("cabot_name", (data) => {
+    document.getElementById("cabot_name").innerText = data;
+});
+
 sio.on("device_status", (data) => {
     document.getElementById("device_status").innerText = JSON.stringify(JSON.parse(data), null, 4);
 });

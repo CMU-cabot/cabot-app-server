@@ -93,6 +93,10 @@ class CaBotTCP():
                 self.version_char.notify()
 
             @self.sio.event
+            def req_name(sid, data):
+                self.name_char.notify()
+
+            @self.sio.event
             def connect(sid, environ, auth):
                 common.logger.info(f"new socket.io connection {environ=}")
 
@@ -113,6 +117,7 @@ class CaBotTCP():
 
 
         self.version_char = common.VersionChar(self, "cabot_version")
+        self.name_char = common.NameChar(self, "cabot_name")
 
         self.device_status_char = common.StatusChar(self, "device_status", cabot_manager.device_status, interval=5)
         self.system_status_char = common.StatusChar(self, "system_status", cabot_manager.cabot_system_status, interval=5)
