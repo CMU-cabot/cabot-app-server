@@ -61,3 +61,7 @@ sio.on("camera_image", (data) => {
 sio.on("location", (data) => {
     document.getElementById("location").innerText = JSON.stringify(JSON.parse(data), null, 4);
 });
+
+sio.on("camera_orientation", (data) => {
+    document.getElementById("camera_orientation").innerText = JSON.stringify(JSON.parse(data), null, 4);
+});

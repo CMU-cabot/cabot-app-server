@@ -43,6 +43,9 @@ from diagnostic_msgs.msg import DiagnosticArray
 from rosidl_runtime_py.convert import message_to_ordereddict
 from sensor_msgs.msg import CompressedImage
 from tf_transformations import euler_from_quaternion
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
+from geometry_msgs.msg import Quaternion
 
 from mf_localization_msgs.srv import RestartLocalization
 from cabot_msgs.srv import Speak
@@ -77,6 +80,7 @@ if DEBUG:
 message_buffer = deque(maxlen=10)
 
 last_camera_image: CompressedImage = None
+last_camera_orientation: Quaternion = None
 last_location: PoseLog = None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -425,6 +429,26 @@ class CameraImageChars(BLENotifyChar):
             self.send_text(self.uuid, f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}", to=to)
 
 
+class CameraOrientationChar(BLENotifyChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, None)
+        self.uuid = uuid
+
+    def sendCameraOrientation(self, msg=None, to=None):
+        msg = msg or last_camera_orientation
+        if msg:
+            (roll, pitch, yaw) = euler_from_quaternion([msg.x, msg.y, msg.z, msg.w])
+            # If the camera is attached normally, roll will be PI/2
+            # If the camera is attached upside down, roll will be -PI/2
+            orientation = {
+                "roll": roll,
+                "pitch": pitch,
+                "yaw": yaw,
+                "camera_rotate": roll < 0
+            }
+            self.send_text(self.uuid, json.dumps(orientation), to=to)
+
+
 class LocationChars(BLENotifyChar):
     def __init__(self, owner, uuid):
         super().__init__(owner, None)
@@ -541,6 +565,12 @@ class CabotNode_Sub(Node):
     def __init__(self):
         super().__init__('cabot_app_server_sub', start_parameter_services=False)
 
+        self.buffer = Buffer()
+        self.listener = TransformListener(self.buffer, self)
+        # listen only tf_static to see the camera rotation
+        # can be replaced with static_only=True arg for TransformListener from K-turtle
+        self.destroy_subscription(self.listener.tf_sub)
+
         self.diagnostics_sub = self.create_subscription(DiagnosticArray, "/diagnostics_agg", self.diagnostic_agg_callback, 10)
         self.cabot_event_sub = self.create_subscription(String, '/cabot/event', self.cabot_event_callback, 10)
         self.cabot_touch_sub = self.create_subscription(Int16, '/cabot/touch', self.cabot_touch_callback, 10)
@@ -585,8 +615,14 @@ class CabotNode_Sub(Node):
         message_buffer.append(msg.data)
 
     def camera_image_callback(self, msg):
-        global last_camera_image
+        global last_camera_image, last_camera_orientation
         last_camera_image = msg
+        try:
+            # msg.header.frame_id is the camera optical frame which is (X-right, Y-down, Z-forward)
+            # ROS2 uses (X-forward, Y-left, Z-up), so the oprical frame is rotated (-PI/2, 0, -PI/2)
+            last_camera_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
+        except:  # noqa: E722
+            pass
 
     def location_callback(self, msg):
         global last_location

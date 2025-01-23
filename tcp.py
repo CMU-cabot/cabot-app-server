@@ -109,6 +109,7 @@ class CaBotTCP():
             def camera_image_request(sid, data):
                 common.logger.info(f"camera_image_request {data}")
                 self.camera_image_char.sendCameraImage(to=sid)
+                self.camera_orientation_char.sendCameraOrientation(to=sid)
 
 
         self.version_char = common.VersionChar(self, "cabot_version")
@@ -121,6 +122,7 @@ class CaBotTCP():
         self.event_char = common.EventChars(self, "navigate")
         self.touch_char = common.TouchChars(self, "touch")
         self.camera_image_char = common.CameraImageChars(self, "camera_image")
+        self.camera_orientation_char = common.CameraOrientationChar(self, "camera_orientation")
         self.location_char = common.LocationChars(self, "location")
 
         self.handler = subchar_handler("/cabot")
