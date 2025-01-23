@@ -27,8 +27,8 @@ import queue
 import subprocess
 import threading
 import time
-import io
 import base64
+import codecs
 
 DEBUG=False
 
@@ -36,6 +36,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
+file_directory = "/opt/cabot/docker/home/.ros/log/"
 
 class LogReport:
     def __init__(self):
@@ -115,7 +116,7 @@ class LogReport:
                 items = log_name.split(",")
                 is_report_submitted = (items[1] == "1") if len(items) > 1 else False
                 is_uploaded_to_box = (items[2] == "1") if len(items) > 2 else False
-                nanoseconds = items[3] if len(items) > 3 else None
+                nanoseconds = int(items[3]) if len(items) > 3 else None
                 response["log_list"].append({
                     "name": items[0],
                     "nanoseconds": nanoseconds,
@@ -141,39 +142,52 @@ class LogReport:
             self.makeReport(title, detail, name)
             response["log"] = {
                 "name": name,
-                "nanoseconds": duration
+                "nanoseconds": int(duration)
             }
         elif request_type == "data-chunk":
-            total_chunks = request["totalChunks"]
             chunk_data = request["data"]
             app_log_name = request["appLogName"]
             chunk_index = request["chunkIndex"]
+            cabot_log_name = request["cabotLogName"]
             logger.info(f"chunk index of this queue is {chunk_index}")
+            file_path = file_directory + cabot_log_name + "/" + app_log_name
 
             if app_log_name not in self.data_chunks:
                 self.data_chunks[app_log_name] = {
-                    "chunks": {},
-                    "total_chunks": total_chunks
+                    "chunks": {},   # {chunk_index : binary_data}
+                    "count": 0,
+                    "decoder": codecs.getincrementaldecoder("utf-8")()
                 }
                 
-            self.data_chunks[app_log_name]["chunks"][chunk_index] = chunk_data
+                with open(file_path, "w") as f:
+                    pass    # empt
+
+            binary_data = base64.b64decode(chunk_data)
+            chunk_name = self.data_chunks[app_log_name]
+            if chunk_name["count"] == chunk_index:
+                self.write_text_with_decoder(file_path, binary_data, chunk_name["decoder"], False)
+
+                chunk_name["count"] += 1
+                while chunk_name["count"] in chunk_name["chunks"]:
+                    chunk_count = chunk_name["count"]
+                    self.write_text_with_decoder(file_path, chunk_name["chunks"][chunk_count], chunk_name["decoder"], False)
+                    chunk_name["count"] += 1
+            elif chunk_name["count"] < chunk_index:
+                chunk_name["chunks"][chunk_index] = binary_data
+
             return
         elif request_type == "appLog":
             app_log_name = request["appLogName"]
             cabot_log_name = request["cabotLogName"]
-            file_directory = "/opt/cabot/docker/home/.ros/log/"
+            total_chunks = request["totalChunks"]
 
             if app_log_name in self.data_chunks:
                 data_info = self.data_chunks[app_log_name]
-                logger.info(f"len chunk {len(data_info['chunks'])}")
 
-                if len(data_info["chunks"]) == data_info["total_chunks"]:
-                    ordered_data = [ data_info["chunks"][idx] for idx in range(data_info["total_chunks"]) ]
-                    combined_data = "".join(ordered_data)
+                if data_info["count"] == total_chunks:
                     file_path = file_directory + cabot_log_name + "/" + app_log_name
                     logger.info(f"app log save to {file_path}")
-                    with open(file_path, "w") as f:
-                        f.write(combined_data)
+                    self.write_text_with_decoder(file_path, b"", data_info["decoder"], True)
 
                     del self.data_chunks[app_log_name]
                 else:
@@ -182,7 +196,12 @@ class LogReport:
 
         callback(response)
 
-    def add_to_queue(self, request_json, callback):
-        logger.info(f"add to queue {request_json}")
+    def add_to_queue(self, request_json, callback, output=True):
+        if output:
+            logger.info(f"add to queue {request_json}")
         self.request_queue.put((request_json, callback))
 
+    def write_text_with_decoder(self, file_path, data, decoder, final):
+        text_part = decoder.decode(data, final=final)
+        with open(file_path, "a") as f:
+            f.write(text_part)
