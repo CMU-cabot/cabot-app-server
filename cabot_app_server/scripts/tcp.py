@@ -92,6 +92,10 @@ class CaBotTCP():
                 self.version_char.notify()
 
             @self.sio.event
+            def req_name(sid, data):
+                self.name_char.notify()
+
+            @self.sio.event
             def connect(sid, environ, auth):
                 common.logger.info(f"new socket.io connection {environ=}")
 
@@ -108,9 +112,11 @@ class CaBotTCP():
             def camera_image_request(sid, data):
                 common.logger.info(f"camera_image_request {data}")
                 self.camera_image_char.sendCameraImage(to=sid)
+                self.camera_orientation_char.sendCameraOrientation(to=sid)
 
 
         self.version_char = common.VersionChar(self, "cabot_version")
+        self.name_char = common.NameChar(self, "cabot_name")
 
         self.device_status_char = common.StatusChar(self, "device_status", cabot_manager.device_status, interval=5)
         self.system_status_char = common.StatusChar(self, "system_status", cabot_manager.cabot_system_status, interval=5)
@@ -120,6 +126,7 @@ class CaBotTCP():
         self.event_char = common.EventChars(self, "navigate")
         self.touch_char = common.TouchChars(self, "touch")
         self.camera_image_char = common.CameraImageChars(self, "camera_image")
+        self.camera_orientation_char = common.CameraOrientationChar(self, "camera_orientation")
         self.location_char = common.LocationChars(self, "location")
 
         self.handler = subchar_handler("/cabot")
