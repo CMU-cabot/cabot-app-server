@@ -40,6 +40,10 @@ log_name=${log_prefix}_`date +%Y-%m-%d-%H-%M-%S`
 
 source $scriptdir/.env
 
+if [ -n "$CABOT_LAUNCH_DEV_PROFILE" ]; then
+    development=$CABOT_LAUNCH_DEV_PROFILE
+fi
+
 profile=prod
 if [[ $development -eq 1 ]]; then
     profile=dev

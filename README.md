@@ -25,6 +25,7 @@ CABOT_BLE_ADAPTER           # default is 'hci0'
 CABOT_START_AT_LAUNCH       # default is 0, launch cabot system if 1 at start up
 CABOT_USE_BLE               # default is false, use BLE if true
 CABOT_USE_TCP               # default is true,  use TCP if true
+CABOT_LAUNCH_DEV_PROFILE    # default is 0, launch in development mode if 1
 HOST_UID                    # host user UID (default=1000)
 HOST_GID                    # host user GID (default=1000)
 HOST_TZ                     # host timezone (default=UTC)
