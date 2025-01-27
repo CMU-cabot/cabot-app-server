@@ -33,7 +33,7 @@ then
   source /home/developer/ros2_ws/install/setup.bash
 fi
 
-export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$CONT_UID/bus
+export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$HOST_UID/bus
 
 WORKDIR=$(pwd)
 
