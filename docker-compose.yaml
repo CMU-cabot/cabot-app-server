@@ -1,6 +1,21 @@
 services:
-  ble:
-    build: .
+  # build
+  cabot-app-server:
+    image: cmucal/cabot-app-server
+    build:
+      context: ./docker/ros2
+      additional_contexts:
+        cabot_src: ./
+      args:
+        - BASE_IMAGE=${BASE_IMAGE:-cabot-base}
+      x-bake:
+        tags:
+          - ${REGISTRY:-cmucal}/cabot-app-server
+        platforms:
+          - linux/amd64
+          - linux/arm64
+        output:
+          - type=registry
     volumes:
 # device, bluetooth
       - /dev:/dev
@@ -17,7 +32,7 @@ services:
       - /sys/fs/cgroup:/sys/fs/cgroup
 # for systemctl --user
       - /run/user:/run/user
-      - ../cabot-device-check:/opt/cabot-device-check
+      - ./cabot-device-check:/opt/cabot-device-check
       - /usr/bin/docker:/usr/bin/docker
       - /usr/local/bin/docker-compose:/usr/local/bin/docker-compose
       - /var/run/docker.sock:/var/run/docker.sock
@@ -27,6 +42,9 @@ services:
       - /opt/report-submitter:/opt/report-submitter
       - /opt/cabot/docker/home/.ros/log:/opt/cabot/docker/home/.ros/log
     environment:
+      - HOST_UID
+      - HOST_GID
+      - HOST_TZ
       - CABOT_NAME
       - CABOT_BLE_ADAPTER
       - CABOT_START_AT_LAUNCH
@@ -42,8 +60,8 @@ services:
       - CABOT_JETSON_CONFIG
       - CABOT_ID_DIR=/home/developer/.ssh
       - CABOT_ID_FILE
-      - CABOT_NO_BLE
-      - CABOT_NO_TCP
+      - CABOT_USE_BLE
+      - CABOT_USE_TCP
       - LIDAR_IF
       - LIDAR_IP
       - ARPSCAN_LIDAR
@@ -57,4 +75,26 @@ services:
       - /dev/dri
 # device, bluetooth
     network_mode: host
-    command: ./cabot_app.py
+    command: /launch.sh app
+    profiles:
+      - build
+
+  # dev
+  cabot-app-server-dev:
+    extends:
+      service: cabot-app-server
+    volumes:
+# source code
+      - ./docker/home:/home/developer
+      - ./cabot_app_server:/home/developer/ros2_ws/src/cabot_app_server      
+      - ./power_controller_ace:/home/developer/ros2_ws/src/power_controller_ace
+      - ./script:/home/developer/ros2_ws/script
+    profiles:
+      - dev
+
+  # prodimg
+  cabot-app-server-prod:
+    extends:
+      service: cabot-app-server
+    profiles:
+      - prod

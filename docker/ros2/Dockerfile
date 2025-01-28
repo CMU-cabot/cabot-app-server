@@ -1,23 +1,69 @@
-FROM ros:humble-ros-base as cache
+ARG BASE_IMAGE=cabot-base
+ARG FROM_IMAGE=cmucal/${BASE_IMAGE}:humble-desktop-custom-mesa
+
+FROM ${FROM_IMAGE} AS cache
 
 RUN apt update && \
 	apt install -y --no-install-recommends \
 	git \
+	ros-humble-diagnostic-updater \
+	ros-humble-nav2-lifecycle-manager \
 	&& \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 
 RUN cd /tmp && \
-	git clone https://github.com/CMU-cabot/cabot-common.git && \
 	git clone https://github.com/CMU-cabot/cabot-navigation.git && \
+	cd cabot-navigation && \
+	./setup-dependency.sh && \
 	mkdir -p /opt/custom_ws/src && \
 	cd /opt/custom_ws && \
-        cp -r /tmp/cabot-common/cabot_msgs src && \
+	cp -r /tmp/cabot-navigation/cabot-common/cabot_msgs src && \
+	cp -r /tmp/cabot-navigation/cabot-common/cabot_common src && \
+	cp -r /tmp/cabot-navigation/cabot-common/docker/humble-custom/people/people_msgs src && \
+	cp -r /tmp/cabot-navigation/cabot src && \
+	cp -r /tmp/cabot-navigation/cabot_ui src && \
 	cp -r /tmp/cabot-navigation/mf_localization_msgs src && \
 	. /opt/ros/humble/setup.sh && \
-        colcon build
+	colcon build
 
-FROM ros:humble-ros-base as final
+FROM ${FROM_IMAGE} AS build
+
+RUN apt update && \
+	apt install -q -y --no-install-recommends \
+	gosu \
+	&& \
+	apt clean && \
+	rm -rf /var/lib/apt/lists/*
+
+COPY --from=cache /opt/custom_ws/install /opt/custom_ws/install
+
+ARG USERNAME=developer
+ARG UID=1000
+RUN useradd -m $USERNAME && \
+    echo "$USERNAME:$USERNAME" | chpasswd && \
+    usermod --shell /bin/bash $USERNAME && \
+    usermod -aG sudo $USERNAME && \
+    mkdir -p /etc/sudoers.d/ && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$USERNAME && \
+    chmod 0440 /etc/sudoers.d/$USERNAME && \
+    usermod  --uid $UID $USERNAME && \
+    groupmod --gid $UID $USERNAME
+
+ENV HOME /home/$USERNAME
+WORKDIR $HOME/ros2_ws
+RUN chown $USERNAME:$USERNAME $HOME/ros2_ws
+
+COPY --from=cabot_src ./docker/ros2/ros_entrypoint.sh /ros_entrypoint.sh
+
+COPY --from=cabot_src ./cabot_app_server ./src/cabot_app_server
+COPY --from=cabot_src ./power_controller_ace ./src/power_controller_ace
+COPY --from=cabot_src ./docker/ros2/launch.sh /launch.sh
+COPY --from=cabot_src ./script ./script
+
+RUN /ros_entrypoint.sh /launch.sh build
+
+FROM ${FROM_IMAGE} AS final
 
 ENV DEBIAN_FRONTEND="noninteractive" \
     UBUNTU_DISTRO=jammy
@@ -94,6 +140,7 @@ RUN apt update && \
 	bluetooth \
 	bluez \
 	bluez-tools \
+	gosu \
 	python3 \
 	python3-dbus \
 	python3-gi \
@@ -111,7 +158,7 @@ RUN apt update && \
 	rm -rf /var/lib/apt/lists/*
 
 
-COPY requirements.txt requirements.txt
+COPY --from=cabot_src ./docker/ros2/requirements.txt requirements.txt
 
 RUN pip3 install  --no-cache-dir \
 	-r requirements.txt
@@ -121,31 +168,30 @@ RUN sed -i 's:exec "$@":source /opt/custom_ws/install/setup.bash:' /ros_entrypoi
 		echo "export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/\$(id -u)/bus" >> /ros_entrypoint.sh && \
     echo 'exec "$@"' >> /ros_entrypoint.sh
 
+COPY --from=cabot_src ./docker/ros2/launch.sh /launch.sh
+
 ARG USERNAME=developer
 ARG UID=1000
 RUN useradd -m $USERNAME && \
         echo "$USERNAME:$USERNAME" | chpasswd && \
         usermod --shell /bin/bash $USERNAME && \
-	usermod -aG sudo $USERNAME && \
+        usermod -aG sudo $USERNAME && \
         mkdir -p /etc/sudoers.d/ && \
         echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$USERNAME && \
         chmod 0440 /etc/sudoers.d/$USERNAME && \
         usermod  --uid $UID $USERNAME && \
 	groupmod --gid $UID $USERNAME
 
-USER $USERNAME
 ENV HOME /home/$USERNAME
-WORKDIR $HOME
-COPY cabot $HOME/cabot
-COPY cabot_ui $HOME/cabot_ui
-COPY cabot_ace $HOME/cabot_ace
-COPY cabot_app.py $HOME/cabot_app.py
-COPY cabot_log_report.py $HOME/cabot_log_report.py
-COPY common.py $HOME/common.py
-COPY ble.py $HOME/ble.py
-COPY tcp.py $HOME/tcp.py
-COPY entrypoint.sh /entrypoint.sh
-COPY cabot-device-check/check_device_status.sh $HOME/cabot-device-check/check_device_status.sh
-COPY cabot-device-check/locale $HOME/locale
+
+WORKDIR $HOME/ros2_ws
+RUN chown $USERNAME:$USERNAME $HOME/ros2_ws
+
+COPY --from=cabot_src ./docker/ros2/ros_entrypoint.sh /ros_entrypoint.sh
+
+COPY --chown=$USERNAME:$USERNAME --from=build $HOME/ros2_ws/install $HOME/ros2_ws/install
+COPY --from=cabot_src ./docker/ros2/launch.sh /launch.sh
+COPY --chown=$USERNAME:$USERNAME --from=cabot_src ./script ./script
+COPY --from=cabot_src ./cabot-device-check /opt/cabot-device-check
 
 ENTRYPOINT [ "/ros_entrypoint.sh" ]
