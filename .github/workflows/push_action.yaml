@@ -2,13 +2,18 @@ name: Test Building Docker Image and Workspace
 
 on:
   push:
+  pull_request:
     branches:
-      - "**"
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
 
 jobs:
-  build-ble-server:
-    uses: cmu-cabot/cabot-ble-server/.github/workflows/build.yaml@yushim/prodimg-ble-service
+  build-app-server:
+    uses: cmu-cabot/cabot-ble-server/.github/workflows/build.yaml@dev-bake
     with:
-      target: ble
+      target: cabot-app-server
     secrets:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
