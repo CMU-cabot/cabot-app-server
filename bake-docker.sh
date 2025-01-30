@@ -36,7 +36,7 @@ function help {
     echo "-l                    build using local registry"
     echo "-P <platform>         specify platform"
     echo "                      build linux/arm64 and linux/amd64 if not specified"
-    echo "-t <tags>             additional tags"
+    echo "-t <tag>[,<tag>]      tag or tags"
 }
 
 platform=
@@ -116,9 +116,13 @@ fi
 # tag option
 tag_option=
 if [[ -z $tags ]]; then
-    tags="latest,$(git rev-parse --abbrev-ref HEAD)"
+    tags="latest,$(git rev-parse --abbrev-ref HEAD | tr '/' '-')"
 fi
-tag_option="--set=${service}.tags=${REGISTRY}/${service}:{${tags}}"
+if [[ "$tags" == *,* ]]; then
+    tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:{$tags}"
+else
+    tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:$tags"
+fi
 
 # platform option
 platform_option=
