@@ -41,10 +41,9 @@ import common
 
 import roslibpy
 
-from cabot import util
-from cabot.event import BaseEvent
+from cabot_common import util
+from cabot_common.event import BaseEvent
 from cabot_ui.event import NavigationEvent
-from cabot_ace import BatteryDriverNode, BatteryDriver, BatteryDriverDelegate, BatteryStatus
 
 class CaBotTCP():
 
@@ -93,6 +92,10 @@ class CaBotTCP():
                 self.version_char.notify()
 
             @self.sio.event
+            def req_name(sid, data):
+                self.name_char.notify()
+
+            @self.sio.event
             def connect(sid, environ, auth):
                 common.logger.info(f"new socket.io connection {environ=}")
 
@@ -107,10 +110,17 @@ class CaBotTCP():
             @self.sio.event
             def share(sid, data):
                 common.logger.info(f"share {data[0]}")
-                self.sio.emit("share", data[0])
+                self.sio.emit("share", data[0], skip_sid=sid)
+
+            @self.sio.event
+            def camera_image_request(sid, data):
+                common.logger.info(f"camera_image_request {data}")
+                self.camera_image_char.sendCameraImage(to=sid)
+                self.camera_orientation_char.sendCameraOrientation(to=sid)
 
 
         self.version_char = common.VersionChar(self, "cabot_version")
+        self.name_char = common.NameChar(self, "cabot_name")
 
         self.device_status_char = common.StatusChar(self, "device_status", cabot_manager.device_status, interval=5)
         self.system_status_char = common.StatusChar(self, "system_status", cabot_manager.cabot_system_status, interval=5)
@@ -119,6 +129,9 @@ class CaBotTCP():
         self.speak_char = common.SpeakChar(self, "speak")
         self.event_char = common.EventChars(self, "navigate")
         self.touch_char = common.TouchChars(self, "touch")
+        self.camera_image_char = common.CameraImageChars(self, "camera_image")
+        self.camera_orientation_char = common.CameraOrientationChar(self, "camera_orientation")
+        self.location_char = common.LocationChars(self, "location")
 
         self.handler = subchar_handler("/cabot")
         self.sio.register_namespace(self.handler)
@@ -132,8 +145,8 @@ class CaBotTCP():
 
         self.error_count = 0
 
-    def send_text(self, uuid, text, priority=10):
-        self.sio.emit(uuid, text)
+    def send_text(self, uuid, text, priority=10, to=None, skip_sid=None):
+        self.sio.emit(uuid, text, to=to, skip_sid=skip_sid)
 
     def handleSpeak(self, req, res):
         common.logger.info("/speak request tcp (%s)", str(req))
@@ -147,6 +160,9 @@ class CaBotTCP():
 
     def handleTouchCallback(self, msg):
         self.touch_char.handleTouchCallback(msg)
+
+    def handleLocationCallback(self, msg):
+        self.location_char.handleLocationCallback(msg)
 
     def start(self):
         common.logger.info("CaBotTCP thread started")

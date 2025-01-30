@@ -37,10 +37,10 @@ import common
 import ble
 import tcp
 
-from cabot import util
-from cabot_ace import BatteryDriverNode, BatteryDriver, BatteryDriverDelegate
+from cabot_common import util
 from cabot_log_report import LogReport
 from cabot_msgs.srv import Speak
+import std_msgs.msg
 
 MTU_SIZE = 2**10  # could be 2**15, but 2**10 is enough
 CHAR_WRITE_MAX_SIZE = 512  # should not be exceeded this value
@@ -167,7 +167,7 @@ class AppClient():
     def __str__(self):
         return f"AppClient: client_id={self.client_id}, type={self.type}"
 
-class CaBotManager(BatteryDriverDelegate):
+class CaBotManager():
     def __init__(self, jetson_poweroff_commands=None):
         self._device_status = DeviceStatus()
         self._cabot_system_status = SystemStatus()
@@ -191,18 +191,28 @@ class CaBotManager(BatteryDriverDelegate):
             self.stop_run.set()
 
     # BatteryDriverDelegate start
-    def battery_status(self, status):
-        self._battery_status = status
-        if status.shutdown or status.lowpower_shutdown:
-            common.logger.info("shutdown requested")
-            self.stop()
-            self.poweroffPC()
+    def battery_status(self, msg):
+        class Dummy():
+            def __init__(self, json):
+                self._json = json
+            @property
+            def json(self):
+                return self._json
+
+        status = json.loads(msg.data)
+        self._battery_status = Dummy(status)
+        for value in status['values']:
+            if (value['key'] == 'Shutdown Request' and value['value'] != '0') or \
+                (value['key'] == 'Lowpower Shutdown Request' and value['value'] != '0'):
+                common.logger.info("shutdown requested")
+                self.stop()
+                self.poweroffPC()
     # BatteryDriverDelegate end
 
     def add_log_request(self, request, callback, output=True):
         self._log_report.add_to_queue(request, callback, output)
 
-    @util.setInterval(1, logger=common.logger)
+    @util.setInterval(1)
     def _run(self):
         self._run_once()
 
@@ -223,9 +233,9 @@ class CaBotManager(BatteryDriverDelegate):
 
     def _check_device_status(self):
         if self._cabot_system_status.is_active():
-            result = self._runprocess(["sudo", "-E", "./cabot-device-check/check_device_status.sh", "-j", "-s"])
+            result = self._runprocess(["sudo", "-E", "/opt/cabot-device-check/check_device_status.sh", "-j", "-s"])
         else:
-            result = self._runprocess(["sudo", "-E", "./cabot-device-check/check_device_status.sh", "-j"])
+            result = self._runprocess(["sudo", "-E", "/opt/cabot-device-check/check_device_status.sh", "-j"])
         if result and result.returncode == 0:
             self._device_status.ok()
         else:
@@ -334,8 +344,6 @@ class CaBotManager(BatteryDriverDelegate):
 quit_flag=False
 tcp_server = None
 ble_manager = None
-driver = None
-battery_thread = None
 tcp_server_thread = None
 
 def get_thread_traceback(thread_id):
@@ -365,9 +373,6 @@ def sigint_handler(sig, frame):
     if sig == signal.SIGINT:
         try:
             quit_flag = True
-            if driver:
-                driver.stop()
-                battery_thread.join()
             if ble_manager:
                 ble_manager.stop()
 
@@ -400,12 +405,9 @@ async def main():
     adapter_name = os.environ['CABOT_BLE_ADAPTER'] if 'CABOT_BLE_ADAPTER' in os.environ else "hci0"
     start_at_launch = (os.environ['CABOT_START_AT_LAUNCH'] == "1") if 'CABOT_START_AT_LAUNCH' in os.environ else False
 
-    port_name = os.environ['CABOT_ACE_BATTERY_PORT'] if 'CABOT_ACE_BATTERY_PORT' in os.environ else None
-    baud = int(os.environ['CABOT_ACE_BATTERY_BAUD']) if 'CABOT_ACE_BATTERY_BAUD' in os.environ else None
-
-    no_ble = os.environ['CABOT_NO_BLE']=='true' if 'CABOT_NO_BLE' in os.environ else False
-    no_tcp = os.environ['CABOT_NO_TCP']=='true' if 'CABOT_NO_TCP' in os.environ else False
-    common.logger.info(f"No BLE = {no_ble}, No TCP = {no_tcp}")
+    use_ble = os.environ.get('CABOT_USE_BLE', False)
+    use_tcp = os.environ.get('CABOT_USE_TCP', True)
+    common.logger.info(f"Use BLE = {use_ble}, Use TCP = {use_tcp}")
 
     cabot_manager = CaBotManager()
     jetson_poweroff_commands = None
@@ -442,17 +444,7 @@ async def main():
     cabot_manager = CaBotManager(jetson_poweroff_commands=jetson_poweroff_commands)
     cabot_manager.run(start=start_at_launch)
 
-    global driver
-    global battery_thread
-    if port_name is not None and baud is not None:
-        driver = BatteryDriver(port_name, baud, delegate=cabot_manager)
-        battery_driver_node = BatteryDriverNode(driver)
-        battery_thread = threading.Thread(target=driver.start)
-        battery_thread.start()
-        battery_thread_node = threading.Thread(target=battery_driver_node.start)
-        battery_thread_node.start()
-
-    if not no_ble:
+    if use_ble:
         result = subprocess.call(["grep", "-E", "^ControllerMode *= *le$", "/etc/bluetooth/main.conf"])
         if result != 0:
             common.logger.error("Please check your /etc/bluetooth/main.conf")
@@ -476,10 +468,11 @@ async def main():
         return res
 
     common.cabot_node_common.create_service(Speak, '/speak', handleSpeak)
+    common.cabot_node_common.create_subscription(std_msgs.msg.String, '/ace_battery_status', cabot_manager.battery_status, 10)
 
     global tcp_server_thread
     try:
-        if not no_tcp:
+        if use_tcp:
             if tcp_server is None:
                 tcp_server = tcp.CaBotTCP(cabot_manager=cabot_manager)
                 common.add_event_handler(tcp_server)
@@ -489,7 +482,7 @@ async def main():
                 else:
                     tcp_server.start()
 
-        if not no_ble:
+        if use_ble:
             if ble_manager is not None:
                 common.remove_event_handler(ble_manager)
             ble_manager = ble.BLEDeviceManager(adapter_name=adapter_name, cabot_name=cabot_name, cabot_manager=cabot_manager)

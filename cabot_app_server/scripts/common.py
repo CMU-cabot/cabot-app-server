@@ -20,7 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import base64
+import math
 import os
+import re
 import time
 import json
 import threading
@@ -38,15 +41,19 @@ from rclpy.time import Time
 from std_msgs.msg import String, Int16
 from diagnostic_msgs.msg import DiagnosticArray
 from rosidl_runtime_py.convert import message_to_ordereddict
+from sensor_msgs.msg import CompressedImage
+from tf_transformations import euler_from_quaternion
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
+from geometry_msgs.msg import Quaternion
 
 from mf_localization_msgs.srv import RestartLocalization
 from cabot_msgs.srv import Speak
-from cabot_msgs.msg import Log
+from cabot_msgs.msg import Log, PoseLog
 
-from cabot import util
-from cabot.event import BaseEvent
+from cabot_common import util
+from cabot_common.event import BaseEvent
 from cabot_ui.event import NavigationEvent
-from cabot_ace import BatteryDriverDelegate
 from cabot_log_report import LogReport
 
 CABOT_BLE_VERSION = "20230222"
@@ -70,6 +77,10 @@ if DEBUG:
     set_debug_mode()
 
 message_buffer = deque(maxlen=10)
+
+last_camera_image: CompressedImage = None
+last_camera_orientation: Quaternion = None
+last_location: PoseLog = None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -118,7 +129,16 @@ def send_touch():
     for handler in event_handlers:
         handler.handleTouchCallback(message)
 
+@util.setInterval(1)
+def send_location():
+    global last_location
+    location, last_location = last_location, None
+    if location is not None:
+        for handler in event_handlers:
+            handler.handleLocationCallback(location)
+
 send_touch()
+send_location()
 
 class BLESubChar:
     def __init__(self, owner, uuid, indication=False, extra_callback=None):
@@ -280,8 +300,8 @@ class BLENotifyChar:
         self.owner = owner
         self.uuid = uuid
 
-    def send_text(self, uuid, text, priority=10):
-        self.owner.send_text(uuid, text, priority)
+    def send_text(self, uuid, text, priority=10, to=None, skip_sid=None):
+        self.owner.send_text(uuid, text, priority, to=to, skip_sid=skip_sid)
 
 
 class VersionChar(BLENotifyChar):
@@ -291,6 +311,14 @@ class VersionChar(BLENotifyChar):
 
     def notify(self):
         self.send_text(self.uuid, self.version)
+
+
+class NameChar(BLENotifyChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, uuid)
+
+    def notify(self):
+        self.send_text(self.uuid, os.getenv("CABOT_NAME", "unknown"))
 
 
 class StatusChar(BLENotifyChar):
@@ -399,6 +427,56 @@ class CabotLogResponseChar(BLENotifyChar):
         self.send_text(self.uuid, jsonText)
 
 
+class CameraImageChars(BLENotifyChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, None)
+        self.uuid = uuid
+
+    def sendCameraImage(self, msg=None, to=None):
+        msg = msg or last_camera_image
+        if msg:
+            m = re.search(r" (.*) compressed", msg.format)
+            self.send_text(self.uuid, f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}", to=to)
+
+
+class CameraOrientationChar(BLENotifyChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, None)
+        self.uuid = uuid
+
+    def sendCameraOrientation(self, msg=None, to=None):
+        msg = msg or last_camera_orientation
+        if msg:
+            (roll, pitch, yaw) = euler_from_quaternion([msg.x, msg.y, msg.z, msg.w])
+            # If the camera is attached normally, roll will be PI/2
+            # If the camera is attached upside down, roll will be -PI/2
+            orientation = {
+                "roll": roll,
+                "pitch": pitch,
+                "yaw": yaw,
+                "camera_rotate": roll < 0
+            }
+            self.send_text(self.uuid, json.dumps(orientation), to=to)
+
+
+class LocationChars(BLENotifyChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, None)
+        self.uuid = uuid
+
+    def handleLocationCallback(self, msg):
+        anchor_rotate = 0  # TODO
+        orientation = msg.pose.orientation
+        (_roll, _pitch, yaw) = euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
+        location = {
+            "lat": msg.lat,
+            "lng": msg.lng,
+            "floor": msg.floor,
+            "yaw": -anchor_rotate - yaw / math.pi * 180,
+        }
+        self.send_text(self.uuid, json.dumps(location))
+
+
 class DeviceStatus:
     def __init__(self):
         self.level = "Unknown"
@@ -497,10 +575,19 @@ class CabotNode_Sub(Node):
     def __init__(self):
         super().__init__('cabot_app_server_sub', start_parameter_services=False)
 
+        self.buffer = Buffer()
+        self.listener = TransformListener(self.buffer, self)
+        # listen only tf_static to see the camera rotation
+        # can be replaced with static_only=True arg for TransformListener from K-turtle
+        self.destroy_subscription(self.listener.tf_sub)
+
         self.diagnostics_sub = self.create_subscription(DiagnosticArray, "/diagnostics_agg", self.diagnostic_agg_callback, 10)
         self.cabot_event_sub = self.create_subscription(String, '/cabot/event', self.cabot_event_callback, 10)
         self.cabot_touch_sub = self.create_subscription(Int16, '/cabot/touch', self.cabot_touch_callback, 10)
         self.restart_localization_client = self.create_client(RestartLocalization, "/restart_localization")
+        self.camera_image_sub = self.create_subscription(CompressedImage, '/camera/color/image_raw/compressed', self.camera_image_callback, 10)
+        self.rs1_image_sub = self.create_subscription(CompressedImage, '/rs1/color/image_raw/compressed', self.camera_image_callback, 10)
+        self.location_sub = self.create_subscription(PoseLog, '/cabot/pose_log', self.location_callback, 10)
 
     def diagnostic_agg_callback(self, msg):
         global diagnostics
@@ -537,6 +624,20 @@ class CabotNode_Sub(Node):
     def cabot_touch_callback(self, msg):
         message_buffer.append(msg.data)
 
+    def camera_image_callback(self, msg):
+        global last_camera_image, last_camera_orientation
+        last_camera_image = msg
+        try:
+            # msg.header.frame_id is the camera optical frame which is (X-right, Y-down, Z-forward)
+            # ROS2 uses (X-forward, Y-left, Z-up), so the oprical frame is rotated (-PI/2, 0, -PI/2)
+            last_camera_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
+        except:  # noqa: E722
+            pass
+
+    def location_callback(self, msg):
+        global last_location
+        last_location = msg
+
 class CabotNode_Common():
     def __init__(self):
         rclpy.init()
@@ -561,6 +662,9 @@ class CabotNode_Common():
 
     def create_service(self, type, name, callback):
         self.sub_node.create_service(type, name, callback)
+
+    def create_subscription(self, type, name, callback, qos):
+        self.sub_node.create_subscription(type, name, callback, qos)
 
 cabot_node_common = CabotNode_Common()
 cabot_node_common.create_nodes()

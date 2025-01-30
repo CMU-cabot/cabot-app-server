@@ -1,0 +1,14 @@
+name: Test Building Docker Image and Workspace
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-app-server:
+    uses: cmu-cabot/cabot-app-server/.github/workflows/build.yaml@main
+    with:
+      target: cabot-app-server
+    secrets:
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
