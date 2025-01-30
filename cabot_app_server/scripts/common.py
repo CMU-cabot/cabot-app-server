@@ -410,6 +410,9 @@ class CabotLogRequestChar(BLESubChar):
         value = value.decode("utf-8")
         self.manager.add_log_request(value, self.response_callback)
 
+    def chunk_callback(self, handle, value):
+        self.manager.add_log_request(value, self.response_callback, False)
+
     def response_callback(self, response):
         self.response_char.respond(response)
 

@@ -104,6 +104,10 @@ class CaBotTCP():
                 self.log_request_char.callback(0, data[0])
 
             @self.sio.event
+            def log_request_chunk(sid, data):
+                self.log_request_char.chunk_callback(0, data[0])
+
+            @self.sio.event
             def share(sid, data):
                 common.logger.info(f"share {data[0]}")
                 self.sio.emit("share", data[0], skip_sid=sid)

@@ -209,8 +209,8 @@ class CaBotManager():
                 self.poweroffPC()
     # BatteryDriverDelegate end
 
-    def add_log_request(self, request, callback):
-        self._log_report.add_to_queue(request, callback)
+    def add_log_request(self, request, callback, output=True):
+        self._log_report.add_to_queue(request, callback, output)
 
     @util.setInterval(1)
     def _run(self):
