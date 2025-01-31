@@ -41,10 +41,9 @@ import common
 
 import roslibpy
 
-from cabot import util
-from cabot.event import BaseEvent
+from cabot_common import util
+from cabot_common.event import BaseEvent
 from cabot_ui.event import NavigationEvent
-from cabot_ace import BatteryDriverNode, BatteryDriver, BatteryDriverDelegate, BatteryStatus
 
 class CaBotTCP():
 
@@ -103,6 +102,10 @@ class CaBotTCP():
             @self.sio.event
             def log_request(sid, data):
                 self.log_request_char.callback(0, data[0])
+
+            @self.sio.event
+            def log_request_chunk(sid, data):
+                self.log_request_char.chunk_callback(0, data[0])
 
             @self.sio.event
             def share(sid, data):

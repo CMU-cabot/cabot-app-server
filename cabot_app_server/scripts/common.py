@@ -51,10 +51,9 @@ from mf_localization_msgs.srv import RestartLocalization
 from cabot_msgs.srv import Speak
 from cabot_msgs.msg import Log, PoseLog
 
-from cabot import util
-from cabot.event import BaseEvent
+from cabot_common import util
+from cabot_common.event import BaseEvent
 from cabot_ui.event import NavigationEvent
-from cabot_ace import BatteryDriverDelegate
 from cabot_log_report import LogReport
 
 CABOT_BLE_VERSION = "20230222"
@@ -411,6 +410,9 @@ class CabotLogRequestChar(BLESubChar):
         value = value.decode("utf-8")
         self.manager.add_log_request(value, self.response_callback)
 
+    def chunk_callback(self, handle, value):
+        self.manager.add_log_request(value, self.response_callback, False)
+
     def response_callback(self, response):
         self.response_char.respond(response)
 
@@ -660,6 +662,9 @@ class CabotNode_Common():
 
     def create_service(self, type, name, callback):
         self.sub_node.create_service(type, name, callback)
+
+    def create_subscription(self, type, name, callback, qos):
+        self.sub_node.create_subscription(type, name, callback, qos)
 
 cabot_node_common = CabotNode_Common()
 cabot_node_common.create_nodes()

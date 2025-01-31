@@ -1,4 +1,6 @@
-# Copyright (c) 2020  Carnegie Mellon University
+#!/bin/bash
+
+# Copyright (c) 2022  Carnegie Mellon University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,4 +20,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__all__ = ["event", "util"]
+# change directory to where this script exists
+pwd=`pwd`
+scriptdir=`dirname $0`
+cd $scriptdir
+scriptdir=`pwd`
+
+if [[ -e install/setup.bash ]]; then
+    source install/setup.bash
+else
+    source /opt/custom_ws/install/setup.bash
+fi
+
+cd ..
+ros2_ws=`pwd`
+
+debug=0
+
+while getopts "d" arg; do
+    case $arg in
+	d)
+	    debug=1
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [[ $debug -eq 1 ]]; then
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug --symlink-install --executor sequential $@
+else
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo --executor sequential $@
+fi
+
+if [[ $? -ne 0 ]]; then exit 1; fi
