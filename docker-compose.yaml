@@ -98,3 +98,31 @@ services:
       service: cabot-app-server
     profiles:
       - prod
+
+  # for Mac (not for production use, only for development)
+  cabot-app-server-mac:
+    image: cmucal/cabot-app-server
+    volumes:
+# for systemctl --user
+      - /run/user:/run/user
+      - ../cabot-device-check:/opt/cabot-device-check
+      - /usr/bin/docker:/usr/bin/docker
+      - /usr/local/bin/docker-compose:/usr/local/bin/docker-compose
+      - /var/run/docker.sock:/var/run/docker.sock
+# device, bluetooth
+    command: /launch.sh app
+    profiles:
+      - mac-prod
+
+  cabot-app-server-mac-dev:
+    image: cmucal/cabot-app-server
+    volumes:
+# for systemctl --user
+      - ./docker/home:/home/developer
+      - ./cabot_app_server:/home/developer/ros2_ws/src/cabot_app_server
+      - ./power_controller_ace:/home/developer/ros2_ws/src/power_controller_ace
+      - ./script:/home/developer/ros2_ws/script
+# device, bluetooth
+    command: /launch.sh app
+    profiles:
+      - mac-dev
