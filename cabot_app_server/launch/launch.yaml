@@ -7,5 +7,4 @@ launch:
   - node:
       pkg: power_controller_ace
       exec: power_controller_node.py
-      name: power_controller_node
-      namespace: ace_battery_control
+      name: power_controller
