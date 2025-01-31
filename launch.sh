@@ -1,7 +1,7 @@
 #!/bin/bash
 
 stop_launch() {
-    docker compose -f $dcfile down
+    docker compose -f $dcfile --profile $profile down
     exit 0
 }
 
@@ -42,6 +42,22 @@ source $scriptdir/.env
 
 if [ -n "$CABOT_LAUNCH_DEV_PROFILE" ]; then
     development=$CABOT_LAUNCH_DEV_PROFILE
+fi
+
+if [[ $(uname -a) =~ ^Darwin.*$ ]]; then
+    profile=mac-prod
+    if [[ $development -eq 1 ]]; then
+        profile=mac-dev
+        echo "This is development environment, building the workspace"
+        com="docker compose -f $dcfile --profile $profile run --rm cabot-app-server-mac-dev /launch.sh build"
+        echo $com
+        eval $com
+    fi
+
+    com="docker compose -f $dcfile --profile $profile up 2>&1 | tee log/$log_name.log"
+    echo $com
+    eval $com
+    exit
 fi
 
 profile=prod
