@@ -35,6 +35,4 @@ fi
 
 export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$HOST_UID/bus
 
-WORKDIR=$(pwd)
-
-exec gosu developer bash -c "cd $WORKDIR && exec $*"
+exec gosu developer "$@"
