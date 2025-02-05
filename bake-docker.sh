@@ -119,9 +119,9 @@ if [[ -z $tags ]]; then
     tags="latest,$(git rev-parse --abbrev-ref HEAD | tr '/' '-')"
 fi
 if [[ "$tags" == *,* ]]; then
-    tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:{$tags}"
+    tag_option="--set=${service}.tags=${REGISTRY}/${service}:{$tags}"
 else
-    tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:$tags"
+    tag_option="--set=${service}.tags=${REGISTRY}/${service}:$tags"
 fi
 
 # platform option
