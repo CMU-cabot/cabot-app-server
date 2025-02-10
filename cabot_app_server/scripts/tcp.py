@@ -118,6 +118,10 @@ class CaBotTCP():
                 self.camera_image_char.sendCameraImage(to=sid)
                 self.camera_orientation_char.sendCameraOrientation(to=sid)
 
+            @self.sio.event
+            def disconnect(sid, reason):
+                common.logger.info(f"disconnect socket.io {reason=}")
+
 
         self.version_char = common.VersionChar(self, "cabot_version")
         self.name_char = common.NameChar(self, "cabot_name")
