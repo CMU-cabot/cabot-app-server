@@ -49,7 +49,7 @@ if [[ $(uname -a) =~ ^Darwin.*$ ]]; then
     if [[ $development -eq 1 ]]; then
         profile=mac-dev
         echo "This is development environment, building the workspace"
-        com="docker compose -f $dcfile --profile $profile run --rm cabot-app-server-mac-dev /launch.sh build"
+        com="docker compose -f $dcfile --profile $profile run --rm app-server-mac-dev /launch.sh build"
         echo $com
         eval $com
     fi
@@ -64,7 +64,7 @@ profile=prod
 if [[ $development -eq 1 ]]; then
     profile=dev
     echo "This is development environment, building the workspace"
-    com="docker compose -f $dcfile --profile $profile run --rm cabot-app-server-dev /launch.sh build"
+    com="docker compose -f $dcfile --profile $profile run --rm app-server-dev /launch.sh build"
     echo $com
     eval $com
 fi

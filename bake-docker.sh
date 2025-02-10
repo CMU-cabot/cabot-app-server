@@ -41,7 +41,7 @@ function help {
 
 platform=
 base_name=cabot-base
-service=cabot-app-server
+service=app-server
 local=0
 tags=
 
