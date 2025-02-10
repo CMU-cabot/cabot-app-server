@@ -41,7 +41,7 @@ function help {
 
 platform=
 base_name=cabot-base
-service=cabot-app-server
+service=app-server
 local=0
 tags=
 
@@ -119,9 +119,9 @@ if [[ -z $tags ]]; then
     tags="latest,$(git rev-parse --abbrev-ref HEAD | tr '/' '-')"
 fi
 if [[ "$tags" == *,* ]]; then
-    tag_option="--set=${service}.tags=${REGISTRY}/${service}:{$tags}"
+    tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:{$tags}"
 else
-    tag_option="--set=${service}.tags=${REGISTRY}/${service}:$tags"
+    tag_option="--set=${service}.tags=${REGISTRY}/cabot-${service}:$tags"
 fi
 
 # platform option

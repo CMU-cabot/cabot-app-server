@@ -9,6 +9,6 @@ jobs:
   build-app-server:
     uses: cmu-cabot/cabot-app-server/.github/workflows/build.yaml@main
     with:
-      target: cabot-app-server
+      target: app-server
     secrets:
       dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}

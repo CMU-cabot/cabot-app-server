@@ -1,6 +1,6 @@
 services:
   # build
-  cabot-app-server:
+  app-server:
     image: cmucal/cabot-app-server
     build:
       context: ./docker/ros2
@@ -80,9 +80,9 @@ services:
       - build
 
   # dev
-  cabot-app-server-dev:
+  app-server-dev:
     extends:
-      service: cabot-app-server
+      service: app-server
     volumes:
 # source code
       - ./docker/home:/home/developer
@@ -93,14 +93,14 @@ services:
       - dev
 
   # prodimg
-  cabot-app-server-prod:
+  app-server-prod:
     extends:
-      service: cabot-app-server
+      service: app-server
     profiles:
       - prod
 
   # for Mac (not for production use, only for development)
-  cabot-app-server-mac:
+  app-server-mac:
     image: cmucal/cabot-app-server
     volumes:
 # for systemctl --user
@@ -114,7 +114,7 @@ services:
     profiles:
       - mac-prod
 
-  cabot-app-server-mac-dev:
+  app-server-mac-dev:
     image: cmucal/cabot-app-server
     volumes:
 # for systemctl --user
