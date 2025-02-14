@@ -20,11 +20,10 @@ RUN cd /tmp && \
 	cd /opt/custom_ws && \
 	cp -r /tmp/cabot-navigation/cabot-common/cabot_msgs src && \
 	cp -r /tmp/cabot-navigation/cabot-common/cabot_common src && \
-	cp -r /tmp/cabot-navigation/cabot-common/docker/humble-custom/people/people_msgs src && \
 	cp -r /tmp/cabot-navigation/cabot src && \
 	cp -r /tmp/cabot-navigation/cabot_ui src && \
 	cp -r /tmp/cabot-navigation/mf_localization_msgs src && \
-	. /opt/ros/humble/setup.sh && \
+	. /opt/custom_ws/install/setup.sh && \
 	colcon build
 
 FROM ${FROM_IMAGE} AS build
