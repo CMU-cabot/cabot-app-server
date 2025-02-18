@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import ctypes
 import asyncio
 import os
 import time
@@ -40,7 +41,8 @@ import tcp
 from cabot_common import util
 from cabot_log_report import LogReport
 from cabot_msgs.srv import Speak
-import std_msgs.msg
+from std_srvs.srv import Trigger
+import sensor_msgs.msg
 
 MTU_SIZE = 2**10  # could be 2**15, but 2**10 is enough
 CHAR_WRITE_MAX_SIZE = 512  # should not be exceeded this value
@@ -60,7 +62,7 @@ class DeviceStatus:
 
     def set_json(self, text):
         try:
-            data=json.loads(text)
+            data = json.loads(text)
             self.devices = []
             if 'devices' in data:
                 for dev in data['devices']:
@@ -77,7 +79,7 @@ class DeviceStatus:
                             'value': dev[key]
                         })
                     self.devices.append(device)
-        except:
+        except:  # noqa: E722
             common.logger.info(traceback.format_exc())
 
     def set_clients(self, clients):
@@ -110,6 +112,7 @@ class DeviceStatus:
 
     def stop(self):
         pass
+
 
 class SystemStatus:
     def __init__(self):
@@ -152,6 +155,7 @@ class SystemStatus:
         self.deactivating()
         self.diagnostics = []
 
+
 class AppClient():
     ALIVE_THRESHOLD = 3.0
 
@@ -167,8 +171,9 @@ class AppClient():
     def __str__(self):
         return f"AppClient: client_id={self.client_id}, type={self.type}"
 
+
 class CaBotManager():
-    def __init__(self, jetson_poweroff_commands=None):
+    def __init__(self):
         self._device_status = DeviceStatus()
         self._cabot_system_status = SystemStatus()
         self._battery_status = None
@@ -178,11 +183,10 @@ class CaBotManager():
         self.stop_run = None
         self.check_interval = 5
         self.run_count = 0
-        self._jetson_poweroff_commands = jetson_poweroff_commands
         self._client_map = {}
 
     def run(self, start=False):
-        self.start_flag=start
+        self.start_flag = start
         self._run_once()
         self.stop_run = self._run()
 
@@ -190,24 +194,35 @@ class CaBotManager():
         if self.stop_run:
             self.stop_run.set()
 
-    # BatteryDriverDelegate start
-    def battery_status(self, msg):
+    def battery_state(self, msg):
         class Dummy():
-            def __init__(self, json):
-                self._json = json
+            def __init__(self, msg):
+                def percent(value):
+                    if value >= 0:
+                        return "{:.0f}%".format(value * 100)
+                    else:
+                        return "Unknown"
+
+                level = 0
+                if msg.percentage <= 0.2:
+                    level = 1
+                if msg.percentage <= 0.1:
+                    level = 2
+                self._json = {
+                    'name': "Battery Control",
+                    'level': level,
+                    'message': percent(msg.percentage),
+                    'hardware_id': msg.header.frame_id,
+                    'values': [{
+                        'key': 'Battery Percentage',
+                        'value': percent(msg.percentage)
+                    }]
+                }
+
             @property
             def json(self):
                 return self._json
-
-        status = json.loads(msg.data)
-        self._battery_status = Dummy(status)
-        for value in status['values']:
-            if (value['key'] == 'Shutdown Request' and value['value'] != '0') or \
-                (value['key'] == 'Lowpower Shutdown Request' and value['value'] != '0'):
-                common.logger.info("shutdown requested")
-                self.stop()
-                self.poweroffPC()
-    # BatteryDriverDelegate end
+        self._battery_status = Dummy(msg)
 
     def add_log_request(self, request, callback, output=True):
         self._log_report.add_to_queue(request, callback, output)
@@ -260,7 +275,7 @@ class CaBotManager():
             else:
                 common.logger.info("check_service_active unknown status: %s", result.stdout.strip())
 
-        #global diagnostics
+        # global diagnostics
         self._cabot_system_status.set_diagnostics(common.diagnostics)
         common.diagnostics = []
 
@@ -275,7 +290,7 @@ class CaBotManager():
         try:
             common.logger.info("calling %s", str(command))
             result = subprocess.call(command)
-        except:
+        except:  # noqa: E722
             common.logger.error(traceback.format_exc())
         finally:
             if lock is not None:
@@ -286,12 +301,9 @@ class CaBotManager():
         self._call(["sudo", "systemctl", "reboot"], lock=self.systemctl_lock)
 
     def poweroffPC(self):
-        if self._jetson_poweroff_commands is not None:
-            for command in self._jetson_poweroff_commands:
-                common.logger.info("send shutdown request to jetson: %s", str(command))
-                self._call(command, lock=self.systemctl_lock)
-
-        self._call(["sudo", "systemctl", "poweroff"], lock=self.systemctl_lock)
+        if shutdown_client.wait_for_service(timeout_sec=1.0):
+            req = Trigger.Request()
+            shutdown_client.call(req)
 
     def startCaBot(self):
         self._call(["systemctl", "--user", "start", "cabot"], lock=self.systemctl_lock)
@@ -341,10 +353,11 @@ class CaBotManager():
         return clients
 
 
-quit_flag=False
+quit_flag = False
 tcp_server = None
 ble_manager = None
 tcp_server_thread = None
+
 
 def get_thread_traceback(thread_id):
     frame = sys._current_frames().get(thread_id)
@@ -353,8 +366,6 @@ def get_thread_traceback(thread_id):
     else:
         return "Thread not found"
 
-import ctypes
-import threading
 
 def terminate_thread(thread):
     if not thread.is_alive():
@@ -366,6 +377,7 @@ def terminate_thread(thread):
     elif res > 1:
         ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, 0)
         raise SystemError("PyThreadState_SetAsyncExc failed")
+
 
 def sigint_handler(sig, frame):
     common.logger.info("sigint_handler")
@@ -379,7 +391,7 @@ def sigint_handler(sig, frame):
             if tcp_server_thread:
                 try:
                     terminate_thread(tcp_server_thread)
-                except:
+                except:  # noqa: E722
                     common.logger.error(traceback.format_exc())
                 while tcp_server_thread.is_alive():
                     common.logger.info(f"wait tcp server thread {tcp_server_thread}")
@@ -388,12 +400,12 @@ def sigint_handler(sig, frame):
             if common.ros2_thread:
                 try:
                     rclpy.shutdown()
-                except:
+                except:  # noqa: E722
                     common.logger.error(traceback.format_exc())
                 while common.ros2_thread.is_alive():
                     common.logger.info(f"wait ros2 server thread {common.ros2_thread}")
                     common.ros2_thread.join(timeout=1)
-        except:
+        except:  # noqa: E722
             common.logger.error(traceback.format_exc())
     else:
         common.logger.error("Unexpected signal")
@@ -410,38 +422,6 @@ async def main():
     common.logger.info(f"Use BLE = {use_ble}, Use TCP = {use_tcp}")
 
     cabot_manager = CaBotManager()
-    jetson_poweroff_commands = None
-    jetson_user = os.environ['CABOT_JETSON_USER'] if 'CABOT_JETSON_USER' in os.environ else "cabot"
-    jetson_config = os.environ['CABOT_JETSON_CONFIG'] if 'CABOT_JETSON_CONFIG' in os.environ else None
-    if jetson_config is not None:
-        id_file = os.environ['CABOT_ID_FILE'] if 'CABOT_ID_FILE' in os.environ else ""
-        id_dir = os.environ['CABOT_ID_DIR'] if 'CABOT_ID_DIR' in os.environ else ""
-        id_file_path = os.path.join(id_dir, id_file)
-        if not os.path.exists(id_file_path):
-            common.logger.error("ssh id file does not exist '{}'".format(id_file_path))
-            sys.exit()
-
-        jetson_poweroff_commands = []
-        items = jetson_config.split()
-        for item in items:
-            split_item = item.split(':')
-            if len(split_item)!=3:
-                common.logger.error("Invalid value of CABOT_JETSON_CONFIG is found '{}'".format(item))
-                sys.exit()
-
-            result = subprocess.call(["ssh", "-i", id_file_path, jetson_user + "@" + split_item[1], "exit"])
-            if result != 0:
-                common.logger.error("Cannot connect Jetson host, please check ssh config. user:{}, host:{}, ssh key file:{}".format(jetson_user, split_item[1], id_file_path))
-                continue
-
-            result = subprocess.call(["ssh", "-i", id_file_path, jetson_user + "@" + split_item[1], "sudo poweroff -w"])
-            if result != 0:
-                common.logger.error("Cannot call poweroff on Jetson host, please check sudoer config. user:{}, host:{}".format(jetson_user, split_item[1], id_file_path))
-                continue
-
-            jetson_poweroff_commands.append(["ssh", "-i", id_file_path, jetson_user + "@" + split_item[1], "sudo poweroff"])
-
-    cabot_manager = CaBotManager(jetson_poweroff_commands=jetson_poweroff_commands)
     cabot_manager.run(start=start_at_launch)
 
     if use_ble:
@@ -456,6 +436,7 @@ async def main():
     global tcp_server
     global ble_manager
     global quit_flag
+    global shutdown_client
 
     def handleSpeak(req, res):
         res.result = False
@@ -468,7 +449,8 @@ async def main():
         return res
 
     common.cabot_node_common.create_service(Speak, '/speak', handleSpeak)
-    common.cabot_node_common.create_subscription(std_msgs.msg.String, '/ace_battery_status', cabot_manager.battery_status, 10)
+    common.cabot_node_common.create_subscription(sensor_msgs.msg.BatteryState, '/battery_state', cabot_manager.battery_state, 10)
+    shutdown_client = common.cabot_node_common.create_client(Trigger, "/shutdown")
 
     global tcp_server_thread
     try:
@@ -493,7 +475,7 @@ async def main():
                 time.sleep(1)
     except KeyboardInterrupt:
         common.logger.info("keyboard interrupt")
-    except:
+    except:  # noqa: E722
         common.logger.info(traceback.format_exc())
     cabot_manager.stop()
     common.logger.info("exiting the app")
