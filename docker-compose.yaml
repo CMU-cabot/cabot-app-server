@@ -115,6 +115,7 @@ services:
       - mac-prod
 
   app-server-mac-dev:
+    image: cmucal/cabot-app-server:${CABOT_LAUNCH_IMAGE_TAG:-latest}
     volumes:
 # for systemctl --user
       - ./docker/home:/home/developer
