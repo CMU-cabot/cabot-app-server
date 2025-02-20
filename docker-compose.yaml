@@ -1,7 +1,7 @@
 services:
   # build
   app-server:
-    image: cmucal/cabot-app-server
+    image: cmucal/cabot-app-server:${CABOT_LAUNCH_IMAGE_TAG:-latest}
     build:
       context: ./docker/ros2
       additional_contexts:
@@ -101,7 +101,7 @@ services:
 
   # for Mac (not for production use, only for development)
   app-server-mac:
-    image: cmucal/cabot-app-server
+    image: cmucal/cabot-app-server:${CABOT_LAUNCH_IMAGE_TAG:-latest}
     volumes:
 # for systemctl --user
       - /run/user:/run/user
@@ -115,7 +115,6 @@ services:
       - mac-prod
 
   app-server-mac-dev:
-    image: cmucal/cabot-app-server
     volumes:
 # for systemctl --user
       - ./docker/home:/home/developer
