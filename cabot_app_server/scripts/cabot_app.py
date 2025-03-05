@@ -41,7 +41,7 @@ import tcp
 from cabot_common import util
 from cabot_log_report import LogReport
 from cabot_msgs.srv import Speak
-from std_srvs.srv import Trigger
+from std_srvs.srv import Trigger, SetBool
 import sensor_msgs.msg
 
 MTU_SIZE = 2**10  # could be 2**15, but 2**10 is enough
@@ -184,6 +184,7 @@ class CaBotManager():
         self.check_interval = 5
         self.run_count = 0
         self._client_map = {}
+        self._set_bool_services = []
 
     def run(self, start=False):
         self.start_flag = start
@@ -196,7 +197,7 @@ class CaBotManager():
 
     def battery_state(self, msg):
         class Dummy():
-            def __init__(self, msg):
+            def __init__(self, msg, services):
                 def percent(value):
                     if value >= 0:
                         return "{:.0f}%".format(value * 100)
@@ -218,11 +219,17 @@ class CaBotManager():
                         'value': percent(msg.percentage)
                     }]
                 }
+                for service in services:
+                    self._json['values'].append({
+                        'key': service.replace('/set_', '').replace('power_', '').replace('_', ' ').title(),
+                        'value': service
+                    })
+                common.logger.info(self._json)
 
             @property
             def json(self):
                 return self._json
-        self._battery_status = Dummy(msg)
+        self._battery_status = Dummy(msg, self._set_bool_services)
 
     def add_log_request(self, request, callback, output=True):
         self._log_report.add_to_queue(request, callback, output)
@@ -236,6 +243,7 @@ class CaBotManager():
         if self.check_interval <= self.run_count:
             self._check_device_status()
             self._check_service_active()
+            self._check_power_services()
             self.run_count = 0
 
         if self.start_flag:
@@ -279,6 +287,11 @@ class CaBotManager():
         self._cabot_system_status.set_diagnostics(common.diagnostics)
         common.diagnostics = []
 
+    def _check_power_services(self):
+        # ROS2のサービスでSetBoolのタイプのサービス名を全て列挙する
+        service_names_and_types = common.cabot_node_common.sub_node.get_service_names_and_types()
+        self._set_bool_services = [name for name, types in service_names_and_types if 'std_srvs/srv/SetBool' in types and name.startswith('/') and 'power' in name]
+
     def _runprocess(self, command):
         return subprocess.run(command, capture_output=True, text=True, env=os.environ.copy())
 
@@ -312,6 +325,22 @@ class CaBotManager():
     def stopCaBot(self):
         self._call(["systemctl", "--user", "stop", "cabot"], lock=self.systemctl_lock)
         self._cabot_system_status.deactivating()
+
+    def reset_power(self, service):
+        if service not in self._set_bool_services:
+            common.logger.error(f"The service {service} is not found")
+            return
+        common.logger.info(f"reset_power {service}")
+        client = common.cabot_node_common.create_client(SetBool, service)
+        if client.wait_for_service(timeout_sec=1.0):
+            req = SetBool.Request()
+            req.data = False
+            common.logger.info(f"request {service} False")
+            client.call(req)
+            time.sleep(3)
+            req.data = True
+            common.logger.info(f"request {service} True")
+            client.call(req)
 
     def device_status(self):
         return self._device_status
