@@ -224,7 +224,6 @@ class CaBotManager():
                         'key': service.replace('/set_', '').replace('power_', '').replace('_', ' ').title(),
                         'value': service
                     })
-                common.logger.info(self._json)
 
             @property
             def json(self):
