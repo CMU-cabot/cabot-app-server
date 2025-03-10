@@ -62,8 +62,8 @@ class DeviceStatus:
 
     def set_json(self, text):
         try:
-            data = json.loads(text)
             self.devices = []
+            data = json.loads(text)
             if 'devices' in data:
                 for dev in data['devices']:
                     device = {
