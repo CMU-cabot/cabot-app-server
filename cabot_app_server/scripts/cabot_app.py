@@ -247,6 +247,9 @@ class CaBotManager():
                 common.logger.info("Start at launch is requested, but device is not OK")
 
     def _check_device_status(self):
+        if not os.path.exists('/opt/cabot-device-check/check_device_status.sh'):
+            self._device_status.ok()   # TODO: work around for cabot3-k4, not implemented
+            return
         if self._cabot_system_status.is_active():
             result = self._runprocess(["sudo", "-E", "/opt/cabot-device-check/check_device_status.sh", "-j", "-s"])
         else:
