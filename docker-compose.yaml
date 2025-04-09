@@ -14,6 +14,10 @@ services:
         platforms:
           - linux/amd64
           - linux/arm64
+        cache-from:
+          - type=local,src=${BUILDX_CACHE_DIR:-~/.cache/docker-buildx-mybuilder}/cabot-app-server
+        cache-to:
+          - type=local,dest=${BUILDX_CACHE_DIR:-~/.cache/docker-buildx-mybuilder}/cabot-app-server,mode=max
         output:
           - type=registry
     volumes:
