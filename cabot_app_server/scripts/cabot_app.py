@@ -249,6 +249,7 @@ class CaBotManager():
     def _check_device_status(self):
         if not os.path.exists('/opt/cabot-device-check/check_device_status.sh'):
             self._device_status.ok()   # TODO: work around for cabot3-k4, not implemented
+            self._device_status.set_json("{}")
             self._device_status.set_clients(self.get_clients_by_type("Normal"))
             return
         if self._cabot_system_status.is_active():
