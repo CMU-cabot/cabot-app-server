@@ -210,6 +210,10 @@ class CabotManageChar(BLESubChar):
             self.manager.stopCaBot()
         if value == "start":
             self.manager.startCaBot()
+        if value == "enablewifi":
+            self.manager.enableWiFi(True)
+        if value == "disablewifi":
+            self.manager.enableWiFi(False)
         if value.startswith("lang"):
             lang = value[5:]
             event = NavigationEvent(subtype="language", param=lang)

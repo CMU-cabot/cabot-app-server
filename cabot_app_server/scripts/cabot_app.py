@@ -318,6 +318,9 @@ class CaBotManager():
         self._call(["systemctl", "--user", "stop", "cabot"], lock=self.systemctl_lock)
         self._cabot_system_status.deactivating()
 
+    def enableWiFi(self, enable):
+        self._call(["rfkill", "unblock" if enable else "block", "wifi"])
+
     def device_status(self):
         return self._device_status
 
