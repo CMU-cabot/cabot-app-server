@@ -82,6 +82,33 @@ class DeviceStatus:
         except:  # noqa: E722
             common.logger.info(traceback.format_exc())
 
+    def set_wifi_status(self, result):
+        device = {
+            "type": "WiFi",
+            "model": "Unknown",
+            "level": "Error",
+            "message": "not_found",
+            "values": []
+        }
+        if result and result.returncode == 0:
+            if "Soft blocked: no" in result.stdout:
+                device = {
+                    "type": "WiFi",
+                    "model": "Unknown",
+                    "level": "OK",
+                    "message": "enabled",
+                    "values": []
+                }
+            elif "Soft blocked: yes" in result.stdout:
+                device = {
+                    "type": "WiFi",
+                    "model": "Unknown",
+                    "level": "OK",
+                    "message": "disabled",
+                    "values": []
+                }
+        self.devices.append(device)
+
     def set_clients(self, clients):
         device = {
             'type': "User App",
@@ -250,6 +277,7 @@ class CaBotManager():
         if not os.path.exists('/opt/cabot-device-check/check_device_status.sh'):
             self._device_status.ok()   # TODO: work around for cabot3-k4, not implemented
             self._device_status.set_json("{}")
+            self._device_status.set_wifi_status(self._runprocess(["rfkill", "list", "wifi"]))
             self._device_status.set_clients(self.get_clients_by_type("Normal"))
             return
         if self._cabot_system_status.is_active():
@@ -261,6 +289,7 @@ class CaBotManager():
         else:
             self._device_status.error()
         self._device_status.set_json(result.stdout)
+        self._device_status.set_wifi_status(self._runprocess(["rfkill", "list", "wifi"]))
         self._device_status.set_clients(self.get_clients_by_type("Normal"))
 
     def _check_service_active(self):
