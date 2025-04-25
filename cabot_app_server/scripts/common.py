@@ -237,6 +237,29 @@ class CabotManageChar(BLESubChar):
             msg = String()
             msg.data = str(event)
             cabot_node_common.pub_node.cabot_event_pub.publish(msg)
+        if value.startswith("speaker_enable"):
+            speaker_enable = value[15:]
+            event = NavigationEvent(subtype="speaker_enable", param=speaker_enable)
+            msg = String()
+            msg.data = str(event)
+            cabot_node_common.pub_node.cabot_event_pub.publish(msg)
+        if value.startswith("speaker_audio_file"):
+            speaker_audio_file = value[19:]
+            event = NavigationEvent(subtype="speaker_audio_file", param=speaker_audio_file)
+            msg = String()
+            msg.data = str(event)
+            cabot_node_common.pub_node.cabot_event_pub.publish(msg)
+        if value.startswith("speaker_volume"):
+            speaker_volume = value[15:]
+            event = NavigationEvent(subtype="speaker_volume", param=speaker_volume)
+            msg = String()
+            msg.data = str(event)
+            cabot_node_common.pub_node.cabot_event_pub.publish(msg)
+        if value.startswith("speaker_alert"):
+            event = NavigationEvent(subtype="speaker_alert")
+            msg = String()
+            msg.data = str(event)
+            cabot_node_common.pub_node.cabot_event_pub.publish(msg)
         if value.startswith("restart_localization"):
             req = RestartLocalization.Request()
 
@@ -390,7 +413,7 @@ class EventChars(BLENotifyChar):
         if event.type != NavigationEvent.TYPE:
             return
 
-        if event.subtype not in ["next", "arrived", "content", "sound", "getlanguage", "gethandleside", "gettouchmode", "togglespeakstate", "toggleconversation"]:
+        if event.subtype not in ["next", "arrived", "content", "sound", "getlanguage", "gethandleside", "gettouchmode", "getspeakeraudiofiles", "togglespeakstate", "toggleconversation"]:
             return
         req = {
             'request_id': request_id,
