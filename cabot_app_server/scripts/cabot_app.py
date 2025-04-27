@@ -339,10 +339,10 @@ class CaBotManager():
             req = Trigger.Request()
             shutdown_client.call(req)
 
-    def releaseEmergencystop(self):
+    def releaseEmergencystop(self, release=True):
         if set_24v_power_odrive_client.wait_for_service(timeout_sec=1.0):
             req = SetBool.Request()
-            req.data = True
+            req.data = release
             set_24v_power_odrive_client.call(req)
 
     def startCaBot(self):
