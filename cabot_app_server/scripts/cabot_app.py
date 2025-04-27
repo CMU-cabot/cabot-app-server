@@ -344,6 +344,8 @@ class CaBotManager():
             req = SetBool.Request()
             req.data = release
             set_24v_power_odrive_client.call(req)
+        else:
+            common.logger.error(f"timeout /set_24v_power_odrive service")
 
     def startCaBot(self):
         self._call(["systemctl", "--user", "start", "cabot"], lock=self.systemctl_lock)
