@@ -41,7 +41,7 @@ import tcp
 from cabot_common import util
 from cabot_log_report import LogReport
 from cabot_msgs.srv import Speak
-from std_srvs.srv import Trigger
+from std_srvs.srv import Trigger, SetBool
 import sensor_msgs.msg
 
 MTU_SIZE = 2**10  # could be 2**15, but 2**10 is enough
@@ -335,9 +335,17 @@ class CaBotManager():
         self._call(["sudo", "systemctl", "reboot"], lock=self.systemctl_lock)
 
     def poweroffPC(self):
-        if shutdown_client.wait_for_service(timeout_sec=1.0):
+        if shutdown_client.wait_for_service(timeout_sec=5.0):
             req = Trigger.Request()
             shutdown_client.call(req)
+
+    def releaseEmergencystop(self, release=True):
+        if set_24v_power_odrive_client.wait_for_service(timeout_sec=5.0):
+            req = SetBool.Request()
+            req.data = release
+            set_24v_power_odrive_client.call(req)
+        else:
+            common.logger.error(f"timeout /set_24v_power_odrive service")
 
     def startCaBot(self):
         self._call(["systemctl", "--user", "start", "cabot"], lock=self.systemctl_lock)
@@ -474,6 +482,7 @@ async def main():
     global ble_manager
     global quit_flag
     global shutdown_client
+    global set_24v_power_odrive_client
 
     def handleSpeak(req, res):
         res.result = False
@@ -488,6 +497,7 @@ async def main():
     common.cabot_node_common.create_service(Speak, '/speak', handleSpeak)
     common.cabot_node_common.create_subscription(sensor_msgs.msg.BatteryState, '/battery_state', cabot_manager.battery_state, 10)
     shutdown_client = common.cabot_node_common.create_client(Trigger, "/shutdown")
+    set_24v_power_odrive_client = common.cabot_node_common.create_client(SetBool, "/set_24v_power_odrive")
 
     global tcp_server_thread
     try:
