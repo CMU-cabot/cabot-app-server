@@ -335,12 +335,12 @@ class CaBotManager():
         self._call(["sudo", "systemctl", "reboot"], lock=self.systemctl_lock)
 
     def poweroffPC(self):
-        if shutdown_client.wait_for_service(timeout_sec=1.0):
+        if shutdown_client.wait_for_service(timeout_sec=5.0):
             req = Trigger.Request()
             shutdown_client.call(req)
 
     def releaseEmergencystop(self, release=True):
-        if set_24v_power_odrive_client.wait_for_service(timeout_sec=1.0):
+        if set_24v_power_odrive_client.wait_for_service(timeout_sec=5.0):
             req = SetBool.Request()
             req.data = release
             set_24v_power_odrive_client.call(req)
