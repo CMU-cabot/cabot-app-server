@@ -14,6 +14,7 @@ RUN apt update && \
 
 RUN cd /tmp && \
 	git clone https://github.com/CMU-cabot/cabot-navigation.git && \
+	git clone https://github.com/CMU-cabot/cabot-drivers.git && \
 	cd cabot-navigation && \
 	./setup-dependency.sh && \
 	mkdir -p /opt/custom_ws/src && \
@@ -23,6 +24,7 @@ RUN cd /tmp && \
 	cp -r /tmp/cabot-navigation/cabot src && \
 	cp -r /tmp/cabot-navigation/cabot_ui src && \
 	cp -r /tmp/cabot-navigation/mf_localization_msgs src && \
+	cp -r /tmp/cabot-drivers/power_controller/power_controller_msgs src && \
 	. /opt/custom_ws/install/setup.sh && \
 	colcon build
 

@@ -25,6 +25,7 @@ import asyncio
 import os
 import time
 import json
+import math
 import threading
 import traceback
 import signal
@@ -43,6 +44,7 @@ from cabot_log_report import LogReport
 from cabot_msgs.srv import Speak
 from std_srvs.srv import Trigger, SetBool
 import sensor_msgs.msg
+import power_controller_msgs.msg
 
 MTU_SIZE = 2**10  # could be 2**15, but 2**10 is enough
 CHAR_WRITE_MAX_SIZE = 512  # should not be exceeded this value
@@ -204,6 +206,7 @@ class CaBotManager():
         self._device_status = DeviceStatus()
         self._cabot_system_status = SystemStatus()
         self._battery_status = None
+        self._battery_states = None
         self._log_report = LogReport()
         self.systemctl_lock = threading.Lock()
         self.start_flag = False
@@ -221,9 +224,12 @@ class CaBotManager():
         if self.stop_run:
             self.stop_run.set()
 
+    def battery_states(self, msg):
+        self._battery_states = msg
+
     def battery_state(self, msg):
         class Dummy():
-            def __init__(self, msg):
+            def __init__(self, msg, states):
                 def percent(value):
                     if value >= 0:
                         return "{:.0f}%".format(value * 100)
@@ -245,11 +251,24 @@ class CaBotManager():
                         'value': percent(msg.percentage)
                     }]
                 }
+                if states:
+                    for b in states.batteryarray:
+                        if not math.isnan(b.percentage):
+                            self._json['values'].append({
+                                'key': f"Battery {b.location} ({b.serial_number})",
+                                'value': percent(b.percentage),
+                            })
+                        else:
+                            self._json['values'].append({
+                                'key': f"Battery {b.location}",
+                                'value': "not available",
+                            })
+                common.logger.info(f"{self._json}")
 
             @property
             def json(self):
                 return self._json
-        self._battery_status = Dummy(msg)
+        self._battery_status = Dummy(msg, self._battery_states)
 
     def add_log_request(self, request, callback, output=True):
         self._log_report.add_to_queue(request, callback, output)
@@ -496,6 +515,7 @@ async def main():
 
     common.cabot_node_common.create_service(Speak, '/speak', handleSpeak)
     common.cabot_node_common.create_subscription(sensor_msgs.msg.BatteryState, '/battery_state', cabot_manager.battery_state, 10)
+    common.cabot_node_common.create_subscription(power_controller_msgs.msg.BatteryArray, '/battery_states', cabot_manager.battery_states, 10)
     shutdown_client = common.cabot_node_common.create_client(Trigger, "/shutdown")
     set_24v_power_odrive_client = common.cabot_node_common.create_client(SetBool, "/set_24v_power_odrive")
 
