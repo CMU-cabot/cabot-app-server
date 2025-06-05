@@ -55,6 +55,14 @@ class DeviceStatus:
     def __init__(self):
         self.level = "Unknown"
         self.devices = []
+        self.temperatures = [None] * 5
+        self._sensor_names = [
+            "Rear (/cabot/temperature1)",
+            "Top (/cabot/temperature2)",
+            "Camera (/cabot/temperature3)",
+            "Center (/cabot/temperature4)",
+            "Bottom (/cabot/temperature5)"
+        ]
 
     def ok(self):
         self.level = "OK"
@@ -131,6 +139,26 @@ class DeviceStatus:
             }
             break
         self.devices.append(device)
+
+    def set_temperature_status(self):
+        for i, temperature in enumerate(self.temperatures):
+            if temperature is None:
+                temp_value = ""
+                level = "Unknown"
+            elif temperature > 50:
+                temp_value = f"{int(temperature)}℃"
+                level = "Error"
+            else:
+                temp_value = f"{int(temperature)}℃"
+                level = "OK"
+            device = {
+                'type': "Suitcase Temperature",
+                'model': self._sensor_names[i],
+                'level': level,
+                'message': temp_value,
+                'values': []
+            }
+            self.devices.append(device)
 
     @property
     def json(self):
@@ -224,6 +252,11 @@ class CaBotManager():
         if self.stop_run:
             self.stop_run.set()
 
+    def temperature_states(self, sensor_number, msg):
+        index = sensor_number - 1
+        if 0 <= index < 5:
+            self._device_status.temperatures[index] = msg.temperature
+
     def battery_states(self, msg):
         self._battery_states = msg
 
@@ -298,6 +331,7 @@ class CaBotManager():
             self._device_status.set_json("{}")
             self._device_status.set_wifi_status(self._runprocess(["rfkill", "list", "wifi"]))
             self._device_status.set_clients(self.get_clients_by_type("Normal"))
+            self._device_status.set_temperature_status()
             return
         if self._cabot_system_status.is_active():
             result = self._runprocess(["sudo", "-E", "/opt/cabot-device-check/check_device_status.sh", "-j", "-s"])
@@ -310,6 +344,7 @@ class CaBotManager():
         self._device_status.set_json(result.stdout)
         self._device_status.set_wifi_status(self._runprocess(["rfkill", "list", "wifi"]))
         self._device_status.set_clients(self.get_clients_by_type("Normal"))
+        self._device_status.set_temperature_status()
 
     def _check_service_active(self):
         result = self._runprocess(["systemctl", "--user", "is-active", "cabot"])
@@ -516,6 +551,14 @@ async def main():
     common.cabot_node_common.create_service(Speak, '/speak', handleSpeak)
     common.cabot_node_common.create_subscription(sensor_msgs.msg.BatteryState, '/battery_state', cabot_manager.battery_state, 10)
     common.cabot_node_common.create_subscription(power_controller_msgs.msg.BatteryArray, '/battery_states', cabot_manager.battery_states, 10)
+    for i in range(1,6):
+        topic = f'/cabot/temperature{i}'
+        common.cabot_node_common.create_subscription(
+            sensor_msgs.msg.Temperature,
+            topic,
+            lambda msg, sensor_number=i: cabot_manager.temperature_states(sensor_number, msg),
+            10
+        )
     shutdown_client = common.cabot_node_common.create_client(Trigger, "/shutdown")
     set_24v_power_odrive_client = common.cabot_node_common.create_client(SetBool, "/set_24v_power_odrive")
 
