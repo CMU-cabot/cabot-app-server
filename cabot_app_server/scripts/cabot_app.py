@@ -55,7 +55,7 @@ class DeviceStatus:
     def __init__(self):
         self.level = "Unknown"
         self.devices = []
-        self.temperatures = [None] * 5
+        self.temperatures = {}
 
     def ok(self):
         self.level = "OK"
@@ -134,21 +134,21 @@ class DeviceStatus:
         self.devices.append(device)
 
     def set_temperature_status(self):
-        for temperature_data in self.temperatures:
+        for temperature_data in self.temperatures.values():
             if temperature_data is None:
-                temp_value = ""
-                temp_location = "Unknown"
-                level = "Unknown"
+                temperature_value = ""
+                temperature_location = "Unknown"
+                temperature_level = "Unknown"
             else:
                 temperature, frame_id = temperature_data
-                temp_value = f"{int(temperature)}℃"
-                level = "Error" if temperature > 50 else "OK"
-                location = frame_id if frame_id else "Unknown"
+                temperature_value = f"{int(temperature)}℃"
+                temperature_level = "Error" if temperature > 50 else "OK"
+                temperature_location = frame_id if frame_id else "Unknown"
             device = {
                 'type': "Suitcase Temperature",
-                'model': location,
-                'level': level,
-                'message': temp_value,
+                'model': temperature_location,
+                'level': temperature_level,
+                'message': temperature_value,
                 'values': []
             }
             self.devices.append(device)
@@ -245,10 +245,8 @@ class CaBotManager():
         if self.stop_run:
             self.stop_run.set()
 
-    def temperature_states(self, sensor_number, msg):
-        index = sensor_number - 1
-        if 0 <= index < 5:
-            self._device_status.temperatures[index] = (msg.temperature, msg.header.frame_id)
+    def temperature_states(self, topic_name, msg):
+        self._device_status.temperatures[topic_name] = (msg.temperature, msg.header.frame_id)
 
     def battery_states(self, msg):
         self._battery_states = msg
@@ -503,6 +501,39 @@ def sigint_handler(sig, frame):
         common.logger.error("Unexpected signal")
 
 
+class TemperatureSubscriberManager:
+    def __init__(self, node, cabot_manager):
+        self.node = node
+        self.cabot_manager = cabot_manager
+        self.subscribed_topics = set()
+        self.start_time = time.time()
+        self._timer = self.node.create_timer(5.0, self._check_temp_topics)
+
+    def _check_temp_topics(self):
+        elapsed = time.time() - self.start_time
+        if elapsed > 180:
+            common.logger.info('3 minutes passed, stopping temperature topic discovery.')
+            self._timer.cancel()
+            return
+
+        topic_list = self.node.get_topic_names_and_types()
+        for topic_name, types in topic_list:
+            if 'sensor_msgs/msg/Temperature' in types and topic_name not in self.subscribed_topics:
+                common.logger.info(f'Subscribing to {topic_name}')
+                self.node.create_subscription(
+                    sensor_msgs.msg.Temperature,
+                    topic_name,
+                    self._make_callback(topic_name),
+                    10
+                )
+                self.subscribed_topics.add(topic_name)
+
+    def _make_callback(self, topic_name):
+        def callback(msg):
+            self.cabot_manager.temperature_states(topic_name, msg)
+        return callback
+
+
 async def main():
     signal.signal(signal.SIGINT, sigint_handler)
     cabot_name = os.environ['CABOT_NAME'] if 'CABOT_NAME' in os.environ else None
@@ -544,14 +575,9 @@ async def main():
     common.cabot_node_common.create_service(Speak, '/speak', handleSpeak)
     common.cabot_node_common.create_subscription(sensor_msgs.msg.BatteryState, '/battery_state', cabot_manager.battery_state, 10)
     common.cabot_node_common.create_subscription(power_controller_msgs.msg.BatteryArray, '/battery_states', cabot_manager.battery_states, 10)
-    for i in range(1,6):
-        topic = f'/cabot/temperature{i}'
-        common.cabot_node_common.create_subscription(
-            sensor_msgs.msg.Temperature,
-            topic,
-            lambda msg, sensor_number=i: cabot_manager.temperature_states(sensor_number, msg),
-            10
-        )
+
+    temperature_subscriber_manager = TemperatureSubscriberManager(common.cabot_node_common.sub_node, cabot_manager)
+
     shutdown_client = common.cabot_node_common.create_client(Trigger, "/shutdown")
     set_24v_power_odrive_client = common.cabot_node_common.create_client(SetBool, "/set_24v_power_odrive")
 
