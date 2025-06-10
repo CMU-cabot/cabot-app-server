@@ -56,13 +56,6 @@ class DeviceStatus:
         self.level = "Unknown"
         self.devices = []
         self.temperatures = [None] * 5
-        self._sensor_names = [
-            "Rear (/cabot/temperature1)",
-            "Top (/cabot/temperature2)",
-            "Camera (/cabot/temperature3)",
-            "Center (/cabot/temperature4)",
-            "Bottom (/cabot/temperature5)"
-        ]
 
     def ok(self):
         self.level = "OK"
@@ -141,19 +134,19 @@ class DeviceStatus:
         self.devices.append(device)
 
     def set_temperature_status(self):
-        for i, temperature in enumerate(self.temperatures):
-            if temperature is None:
+        for temperature_data in self.temperatures:
+            if temperature_data is None:
                 temp_value = ""
+                temp_location = "Unknown"
                 level = "Unknown"
-            elif temperature > 50:
-                temp_value = f"{int(temperature)}℃"
-                level = "Error"
             else:
+                temperature, frame_id = temperature_data
                 temp_value = f"{int(temperature)}℃"
-                level = "OK"
+                level = "Error" if temperature > 50 else "OK"
+                location = frame_id if frame_id else "Unknown"
             device = {
                 'type': "Suitcase Temperature",
-                'model': self._sensor_names[i],
+                'model': location,
                 'level': level,
                 'message': temp_value,
                 'values': []
@@ -255,7 +248,7 @@ class CaBotManager():
     def temperature_states(self, sensor_number, msg):
         index = sensor_number - 1
         if 0 <= index < 5:
-            self._device_status.temperatures[index] = msg.temperature
+            self._device_status.temperatures[index] = (msg.temperature, msg.header.frame_id)
 
     def battery_states(self, msg):
         self._battery_states = msg
