@@ -45,6 +45,7 @@ from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from geometry_msgs.msg import Quaternion
 
+from mf_localization_msgs.srv import MFTrigger
 from mf_localization_msgs.srv import RestartLocalization
 from cabot_msgs.msg import Log, PoseLog
 
@@ -271,6 +272,14 @@ class CabotManageChar(BLESubChar):
                 logger.info(f"Localization restart: {response=}")
 
             self.future.add_done_callback(done_callback)
+        if value.startswith("reset_gnss"):
+            req = MFTrigger.Request()
+            self.future_reset_gnss = cabot_node_common.sub_node.reset_gnss_client.call_async(req)
+
+            def done_callback(response):
+                logger.info(f"Reset GNSS: {response=}")
+
+            self.future_reset_gnss.add_done_callback(done_callback)
 
     def not_found(self):
         logger.error("%s is not implemented", self.uuid)
@@ -627,6 +636,7 @@ class CabotNode_Sub(Node):
         self.cabot_event_sub = self.create_subscription(String, '/cabot/event', self.cabot_event_callback, 10)
         self.cabot_touch_sub = self.create_subscription(Int16, '/cabot/touch', self.cabot_touch_callback, 10)
         self.restart_localization_client = self.create_client(RestartLocalization, "/restart_localization")
+        self.reset_gnss_client = self.create_client(MFTrigger, "/reset_gnss")
         self.camera_image_sub = self.create_subscription(CompressedImage, '/camera/color/image_raw/compressed', self.camera_image_callback, 10)
         self.rs1_image_sub = self.create_subscription(CompressedImage, '/rs1/color/image_raw/compressed', self.camera_image_callback, 10)
         self.location_sub = self.create_subscription(PoseLog, '/cabot/pose_log', self.location_callback, 10)
