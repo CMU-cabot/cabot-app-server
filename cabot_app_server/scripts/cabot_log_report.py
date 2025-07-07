@@ -190,6 +190,7 @@ class LogReport:
                     self.write_text_with_decoder(file_path, b"", data_info["decoder"], True)
 
                     del self.data_chunks[app_log_name]
+                    self.submitReport()
                 else:
                     self.add_to_queue(request_json, callback)
             return
