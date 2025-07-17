@@ -517,7 +517,7 @@ class LocationChars(BLENotifyChar):
             "lat": msg.lat,
             "lng": msg.lng,
             "floor": msg.floor,
-            "yaw": msg.pose.orientation,
+            "yaw": msg.global_rotate,
             "rotate": msg.global_rotate
         }
         self.send_text(self.uuid, json.dumps(location))
