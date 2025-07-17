@@ -47,7 +47,7 @@ from geometry_msgs.msg import Quaternion
 
 from mf_localization_msgs.srv import MFTrigger
 from mf_localization_msgs.srv import RestartLocalization
-from cabot_msgs.msg import Log, PoseLog
+from cabot_msgs.msg import Log, PoseLog2
 
 from cabot_common import util
 from cabot_common.event import BaseEvent
@@ -79,7 +79,7 @@ message_buffer = deque(maxlen=10)
 
 last_camera_image: CompressedImage = None
 last_camera_orientation: Quaternion = None
-last_location: PoseLog = None
+last_location: PoseLog2 = None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -513,14 +513,12 @@ class LocationChars(BLENotifyChar):
         self.uuid = uuid
 
     def handleLocationCallback(self, msg):
-        anchor_rotate = 0  # TODO
-        orientation = msg.pose.orientation
-        (_roll, _pitch, yaw) = euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])
         location = {
             "lat": msg.lat,
             "lng": msg.lng,
             "floor": msg.floor,
-            "yaw": -anchor_rotate - yaw / math.pi * 180,
+            "yaw": msg.pose.orientation,
+            "rotate": msg.global_rotate
         }
         self.send_text(self.uuid, json.dumps(location))
 
@@ -639,7 +637,7 @@ class CabotNode_Sub(Node):
         self.reset_gnss_client = self.create_client(MFTrigger, "/reset_gnss")
         self.camera_image_sub = self.create_subscription(CompressedImage, '/camera/color/image_raw/compressed', self.camera_image_callback, 10)
         self.rs1_image_sub = self.create_subscription(CompressedImage, '/rs1/color/image_raw/compressed', self.camera_image_callback, 10)
-        self.location_sub = self.create_subscription(PoseLog, '/cabot/pose_log', self.location_callback, 10)
+        self.location_sub = self.create_subscription(PoseLog2, '/cabot/pose_log2', self.location_callback, 10)
 
     def diagnostic_agg_callback(self, msg):
         global diagnostics
