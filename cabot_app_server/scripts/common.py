@@ -59,31 +59,27 @@ ble_manager = None
 
 DEBUG = False
 
-# Debug
 
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
-def set_debug_mode():
-    for key in logging.common.logger.manager.common.loggerDict:
-        # for key in ["pygatt.device"]:
-        try:
-            logging.common.logger.manager.common.loggerDict[key].setLevel(logging.DEBUG)
-        except:  # noqa: E722
-            pass
-
-
-if DEBUG:
-    set_debug_mode()
+# # Debug
+# def set_debug_mode():
+#     for key in logging.common.logger.manager.common.loggerDict:
+#         # for key in ["pygatt.device"]:
+#         try:
+#             logging.common.logger.manager.common.loggerDict[key].setLevel(logging.DEBUG)
+#         except:  # noqa: E722
+#             pass
+# if DEBUG:
+#     set_debug_mode()
 
 message_buffer = deque(maxlen=10)
 
 last_camera_image: CompressedImage = None
 last_camera_orientation: Quaternion = None
 last_location: PoseLog = None
-
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
-
 
 def activity_log(category="", text="", memo=""):
     now = Clock(clock_type=ClockType.ROS_TIME).now()
@@ -439,6 +435,23 @@ class TouchChars(BLENotifyChar):
         self.send_text(self.uuid, jsonText)
 
 
+class TourGuideChar(BLESubChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, uuid)
+
+    def callback(self, handle, data):
+
+        try:
+            data = data.decode("utf-8")
+            logger.info(f"Got response from the tourguide {data}")
+            event = NavigationEvent(subtype="guide_response", param=data)
+            msg = String()
+            msg.data = str(event)
+            cabot_node_common.pub_node.cabot_event_pub.publish(msg)
+        except:
+            logger.info("Failed callback from response from the tourguide")
+
+
 class CabotLogRequestChar(BLESubChar):
     def __init__(self, owner, uuid, manager, response_char):
         super().__init__(owner, uuid)
@@ -446,10 +459,13 @@ class CabotLogRequestChar(BLESubChar):
         self.response_char = response_char
 
     def callback(self, handle, value):
+        
         value = value.decode("utf-8")
+
         self.manager.add_log_request(value, self.response_callback)
 
     def chunk_callback(self, handle, value):
+
         self.manager.add_log_request(value, self.response_callback, False)
 
     def response_callback(self, response):

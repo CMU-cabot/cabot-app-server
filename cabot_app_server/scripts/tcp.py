@@ -43,6 +43,8 @@ class CaBotTCP():
         self.destination_char = common.DestinationChar(self, "destination")
         self.heartbeat_char = common.HeartbeatChar(self, "heartbeat")
 
+        self.tourguide_char = common.TourGuideChar(self, "tourguide")
+
         class subchar_handler(socketio.Namespace):
             @self.sio.event
             def manage_cabot(sid, data):
@@ -55,6 +57,11 @@ class CaBotTCP():
             @self.sio.event
             def summons(sid, data):
                 self.summons_char.callback(0, data[0].encode("utf-8"))
+
+            @self.sio.event
+            def tourguide(sid, data):
+                common.logger.info(f"tourguide input {data}")
+                self.tourguide_char.callback(0, data[0])
 
             @self.sio.event
             def destination(sid, data):
@@ -84,6 +91,7 @@ class CaBotTCP():
 
             @self.sio.event
             def log_request(sid, data):
+                common.logger.info(f"log_request received")
                 self.log_request_char.callback(0, data[0])
 
             @self.sio.event
