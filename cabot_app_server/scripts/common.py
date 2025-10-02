@@ -285,6 +285,17 @@ class CabotManageChar(BLESubChar):
         logger.error("%s is not implemented", self.uuid)
 
 
+class ElevatorSettingsChar(BLESubChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, uuid)
+
+    def callback(self, handle, value):
+        logger.info(f"elevator_settings {value}")
+        msg = String()
+        msg.data = value
+        cabot_node_common.pub_node.elevator_settings_pub.publish(msg)
+
+
 class DestinationChar(BLESubChar):
     def __init__(self, owner, uuid):
         super().__init__(owner, uuid)
@@ -609,6 +620,7 @@ class CabotNode_Pub(Node):
         self.cabot_event_pub = self.create_publisher(String, '/cabot/event', 5)
         self.ble_hb_topic = self.create_publisher(String, '/cabot/ble_heart_beat', 5)
         self.activity_log_pub = self.create_publisher(Log, '/cabot/activity_log', 5)
+        self.elevator_settings_pub = self.create_publisher(String, '/elevator_settings', 5)
 
     def cabot_pub_event(self, msg):
         self.cabot_event_pub.publish(msg)
