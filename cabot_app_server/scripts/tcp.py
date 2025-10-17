@@ -44,6 +44,7 @@ class CaBotTCP():
         self.destination_char = common.DestinationChar(self, "destination")
         self.heartbeat_char = common.HeartbeatChar(self, "heartbeat")
         self.signal_status_char = common.SignalStatusChar(self, "signal_response_intersection_status")
+        self.elevator_settings_char = common.ElevatorSettingsChar(self, "elevator_settings")
 
         class subchar_handler(socketio.Namespace):
             @self.sio.event
@@ -75,6 +76,10 @@ class CaBotTCP():
             @self.sio.event
             def signal_response_intersection_status(sid, data):
                 self.signal_status_char.callback(0, data[0])
+
+            @self.sio.event
+            def elevator_settings(sid, data):
+                self.elevator_settings_char.callback(0, data[0])
 
             @self.sio.event
             def req_version(sid, data):

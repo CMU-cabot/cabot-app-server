@@ -296,6 +296,17 @@ class SignalStatusChar(BLESubChar):
         cabot_node_common.pub_node.signal_status_pub.publish(msg)
 
 
+class ElevatorSettingsChar(BLESubChar):
+    def __init__(self, owner, uuid):
+        super().__init__(owner, uuid)
+
+    def callback(self, handle, value):
+        logger.info(f"elevator_settings {value}")
+        msg = String()
+        msg.data = value
+        cabot_node_common.pub_node.elevator_settings_pub.publish(msg)
+
+
 class DestinationChar(BLESubChar):
     def __init__(self, owner, uuid):
         super().__init__(owner, uuid)
@@ -435,7 +446,10 @@ class EventChars(BLENotifyChar):
         if event.type != NavigationEvent.TYPE:
             return
 
-        if event.subtype not in ["next", "arrived", "content", "sound", "getlanguage", "gethandleside", "gettouchmode", "getspeakeraudiofiles", "togglespeakstate", "toggleconversation"]:
+        if event.subtype not in [
+            "next", "arrived", "content", "sound", "getlanguage", "gethandleside", "gettouchmode",
+            "getspeakeraudiofiles", "togglespeakstate", "toggleconversation", "getelevatorsettings"
+        ]:
             return
         req = {
             'request_id': request_id,
@@ -621,6 +635,7 @@ class CabotNode_Pub(Node):
         self.ble_hb_topic = self.create_publisher(String, '/cabot/ble_heart_beat', 5)
         self.activity_log_pub = self.create_publisher(Log, '/cabot/activity_log', 5)
         self.signal_status_pub = self.create_publisher(String, '/signal_response_intersection_status', 5)
+        self.elevator_settings_pub = self.create_publisher(String, '/elevator_settings', 5)
 
     def cabot_pub_event(self, msg):
         self.cabot_event_pub.publish(msg)
