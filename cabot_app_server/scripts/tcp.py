@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import json
 import time
 import traceback
 from flask import Flask
@@ -42,6 +43,7 @@ class CaBotTCP():
         self.summons_char = common.SummonsChar(self, "summons")
         self.destination_char = common.DestinationChar(self, "destination")
         self.heartbeat_char = common.HeartbeatChar(self, "heartbeat")
+        self.signal_status_char = common.SignalStatusChar(self, "signal_response_intersection_status")
         self.elevator_settings_char = common.ElevatorSettingsChar(self, "elevator_settings")
 
         class subchar_handler(socketio.Namespace):
@@ -70,6 +72,10 @@ class CaBotTCP():
                 else:
                     # old app
                     self.heartbeat_char.callback(0, data[0])
+
+            @self.sio.event
+            def signal_response_intersection_status(sid, data):
+                self.signal_status_char.callback(0, data[0])
 
             @self.sio.event
             def elevator_settings(sid, data):
