@@ -217,6 +217,11 @@ class CabotManageChar(BLESubChar):
             self.manager.enableWiFi(False)
         if value == "release_emergencystop":
             self.manager.releaseEmergencystop()
+        if value in ["resume", "pause", "idle", "speedup", "speeddown"]:
+            event = NavigationEvent(subtype=value)
+            msg = String()
+            msg.data = str(event)
+            cabot_node_common.pub_node.cabot_event_pub.publish(msg)
         if value.startswith("lang"):
             lang = value[5:]
             event = NavigationEvent(subtype="language", param=lang)
