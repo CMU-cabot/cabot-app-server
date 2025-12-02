@@ -37,9 +37,16 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('/last_data/', {})
             .then(response => response.json())
             .then(data => {
-                console.log(data);
-                document.getElementById('messages').innerText = JSON.stringify(data, null, 4);
+                document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
             })
             .catch(error => console.error('Error:', error));
     }, 1000);
+    fetch('/directory/', {})
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            document.getElementById('destinations').innerText = JSON.stringify(data.sections.ja, null, 2);
+            document.getElementById('tours').innerText = JSON.stringify(data.tours, null, 2);
+        })
+        .catch(error => console.error('Error:', error));
 });

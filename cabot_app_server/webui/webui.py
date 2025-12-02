@@ -36,7 +36,6 @@ class WebUI:
         manage_cabot_char = server.manage_cabot_char
         self.last_data = defaultdict(list)
         self.tour_manager = tour_manager.TourManager()
-        self.tour_manager.load()
 
         @app.route('/')
         def index():
@@ -46,6 +45,10 @@ class WebUI:
         def last_data():
             key = request.args.get('key')
             return jsonify({key: self.last_data.get(key, [])}) if key else jsonify(self.last_data)
+
+        @app.route('/directory/')
+        def directory():
+            return jsonify(self.tour_manager.format_directories())
 
         @app.route('/publish/', methods=['POST'])
         def speak():
@@ -92,6 +95,7 @@ class WebUI:
         sio.emit = emit_wrap
         sio._handle_event_internal = handler_wrap
 
+        self.tour_manager.load()
         common.logger.info("WebUI listening...")
 
     def _track_event(self, event, payload, emit=False):
