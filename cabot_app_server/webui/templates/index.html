@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,7 +8,57 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/index.css') }}">
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
 </head>
+
 <body>
-    Hello, Cabot App!
+    <fieldset>
+        <legend>言語</legend>
+        <button onclick="share({type: 'ChangeLanguage', value: 'ja'})">日本語</button>
+        <button onclick="share({type: 'ChangeLanguage', value: 'en'})">英語</button>
+        <button onclick="share({type: 'ChangeLanguage', value: 'zh-Hans'})">中国語</button>
+    </fieldset>
+    <fieldset>
+        <legend>ハンドル</legend>
+        <button onclick="share({type: 'ChangeHandleSide', value: 'left'})">左手持ち</button>
+        <button onclick="share({type: 'ChangeHandleSide', value: 'right'})">右手持ち</button>
+    </fieldset>
+    <fieldset>
+        <legend>タッチモード</legend>
+        <button onclick="share({type: 'ChangeTouchMode', value: 'cap'})">静電容量</button>
+        <button onclick="share({type: 'ChangeTouchMode', value: 'tof'})">距離センサー(ToF)</button>
+        <button onclick="share({type: 'ChangeTouchMode', value: 'dual'})">両方</button>
+    </fieldset>
+    <fieldset>
+        <legend>テキスト読み上げ</legend>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.3'})">速度 0.3</button>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.4'})">速度 0.4</button>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.5'})">速度 0.5</button>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.6'})">速度 0.6</button>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.7'})">速度 0.7</button>
+    </fieldset>
+    <fieldset>
+        <legend>ハンドル操作</legend>
+        <button onclick="manage('resume')">再開</button>
+        <button onclick="manage('speedup')">速度を上げる</button>
+        <button onclick="manage('speeddown')">速度を下げる</button>
+        <button onclick="manage('pause')">一時停止</button>
+        <button onclick="manage('idle')">自動走行を停止</button>
+    </fieldset>
+    <fieldset>
+        <legend>アクション</legend>
+        <button onclick="manage('reboot')">リブート</button>
+        <button onclick="manage('start')">システム起動</button>
+        <button onclick="manage('stop')">システム停止</button>
+    </fieldset>
+    <fieldset>
+        <legend>位置推定</legend>
+        <button onclick="manage('restart_localization')">位置推定の再試行</button>
+        <button onclick="manage('reset_gnss')">GNSSのリセット</button>
+    </fieldset>
+    <fieldset>
+        <legend>デバッグ</legend>
+        <pre id="messages" />
+    </fieldset>
+
 </body>
+
 </html>
