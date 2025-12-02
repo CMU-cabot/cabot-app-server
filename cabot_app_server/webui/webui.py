@@ -4,6 +4,7 @@ from collections import defaultdict
 from flask import Flask, jsonify, render_template, request
 import common
 import tcp
+import tour_manager
 
 
 class WebUI:
@@ -34,6 +35,8 @@ class WebUI:
         sio: socketio.Server = server.sio
         manage_cabot_char = server.manage_cabot_char
         self.last_data = defaultdict(list)
+        self.tour_manager = tour_manager.TourManager()
+        self.tour_manager.load()
 
         @app.route('/')
         def index():
