@@ -5,3 +5,13 @@ body {
 #camera_image {
     width: 320px;
 }
+
+fieldset.collapsed> :not(legend) {
+    display: none;
+}
+
+fieldset.collapsed {
+  border: none;
+  padding: 0;
+  margin: 0;
+}

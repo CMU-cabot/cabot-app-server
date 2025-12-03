@@ -32,21 +32,47 @@ function speak_text() {
     speak({ text: document.getElementById('speak_text').value });
 }
 
-function renderSections(sections) {
+function toggleBox(legend) {
+    const fs = legend.closest("fieldset");
+    fs.classList.toggle("collapsed");
+}
+
+function add_destination(node) {
+    const clear = confirm('全部消してから追加しますか？');
+    const first = clear || confirm('最初に追加しますか？');
+    share({ type: 'OverrideDestination', value: node, flag1: clear, flag2: first });
+}
+
+function renderSections(sections, destinations, level = 0) {
     let html = "";
     for (const section of sections) {
         if (section.items) {
-            html += `<fieldset><legend>${section.title}</legend>`;
+            if (level == 0) {
+                html += `<fieldset><legend>${section.title}</legend>`;
+            }
             for (const item of section.items) {
                 if (item.content?.sections) {
-                    html += `<fieldset><legend>${item.title}</legend>`;
-                    html += renderSections(item.content.sections);
+                    html += `<fieldset class="collapsed"><legend onclick="toggleBox(this)">${item.title}</legend>`;
+                    html += renderSections(item.content.sections, destinations, level + 1);
                     html += `</fieldset>`;
                 } else {
-                    html += `<div data-node="${item.nodeID}" data-demo="${item.forDemonstration ?? false}">${item.title ?? 'Untitled'}</div>`;
+                    if (item.nodeID) {
+                        let nodeID = item.nodeID;
+                        for (const dest of destinations) {
+                            if (dest.value == nodeID) {
+                                if ('arrivalAngle' in dest) {
+                                    nodeID = `${nodeID}@${dest.arrivalAngle}`
+                                }
+                                break;
+                            }
+                        }
+                        html += `<div data-demo="${item.forDemonstration ?? false}" onclick="add_destination('${nodeID}')">${item.title ?? 'Untitled'}</div>`;
+                    }
                 }
             }
-            html += `</fieldset>`;
+            if (level == 0) {
+                html += `</fieldset>`;
+            }
         }
     }
     return html;
@@ -87,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
             console.log(data);
             const lang = 'ja'
-            document.getElementById('destinations').innerHTML = renderSections(data.sections[lang]);
+            document.getElementById('destinations').innerHTML = renderSections(data.sections[lang], data.destinations);
             document.getElementById('tours').innerHTML = renderTours(data.tours, lang);
         })
         .catch(error => console.error('Error:', error));

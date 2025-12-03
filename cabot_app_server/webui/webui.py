@@ -118,6 +118,8 @@ class WebUI:
                 return
             data = json.loads(payload)
             event_type = f"share.{data.get('type')}"
+            # if not event_type.startswith('share.Speak'):
+            #     common.logger.info(f"DEBUG {event_type} {payload}")
             value = data.get('value')
 
             if event_type == 'share.Speak':
