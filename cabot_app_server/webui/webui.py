@@ -1,7 +1,9 @@
+import base64
 import json
+import re
 import socketio
 from collections import defaultdict
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 import common
 import tcp
 import tour_manager
@@ -73,6 +75,14 @@ class WebUI:
             common.logger.info(f"/manage/ data={data}")
             manage_cabot_char.callback(0, data.encode("utf-8"))
             return jsonify({'status': 'ok'})
+
+        @app.route('/camera_image/')
+        def camera_image():
+            msg = common.last_camera_image
+            if not msg:
+                return jsonify({'error': 'no camera image'}), 400
+            m = re.search(r" (.*) compressed", msg.format)
+            return jsonify({"image": f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}", "transform": "rotate(180deg)"})
 
         # Socket.IO Wrappers
         original_emit = sio.emit

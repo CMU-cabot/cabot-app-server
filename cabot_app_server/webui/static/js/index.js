@@ -70,6 +70,18 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => console.error('Error:', error));
     }, 1000);
+    setInterval(() => {
+        fetch('/camera_image/', {})
+            .then(response => response.json())
+            .then(data => {
+                if (data.image) {
+                    const img = document.getElementById('camera_image');
+                    img.src = data.image;
+                    img.style.transform = data.transform ?? '';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }, 1000);
     fetch('/directory/', {})
         .then(response => response.json())
         .then(data => {
