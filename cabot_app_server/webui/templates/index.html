@@ -29,18 +29,19 @@
     </fieldset>
     <fieldset>
         <legend>テキスト読み上げ</legend>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.1'})">速度 0.1</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.2'})">速度 0.2</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.3'})">速度 0.3</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.4'})">速度 0.4</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.5'})">速度 0.5</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.6'})">速度 0.6</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.7'})">速度 0.7</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">速度 0.8</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.9'})">速度 0.9</button>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.2'})">とても遅い</button>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.35'})">遅い</button>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.5'})">普通</button>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.65'})">速い</button>
+        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">とても速い</button>
         <hr>
         <input type="text" id="speak_text" value="こんにちは、お元気ですか？" size="50"/>
         <button onclick="speak_text()">読み上げ</button>
+    </fieldset>
+    <fieldset>
+        <legend>対話</legend>
+        <button onclick="share({type: 'ChatRequest', value: 'open'})">対話開始</button>
+        <button onclick="share({type: 'ChatRequest', value: 'close'})">対話終了</button>
     </fieldset>
     <fieldset>
         <legend>ハンドル操作</legend>
