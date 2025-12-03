@@ -32,7 +32,36 @@ function speak_text() {
     speak({ text: document.getElementById('speak_text').value });
 }
 
+function renderSections(sections) {
+    let html = "";
+    for (const section of sections) {
+        if (section.items) {
+            html += `<fieldset><legend>${section.title}</legend>`;
+            for (const item of section.items) {
+                if (item.content?.sections) {
+                    html += `<fieldset><legend>${item.title}</legend>`;
+                    html += renderSections(item.content.sections);
+                    html += `</fieldset>`;
+                } else {
+                    html += `<div data-node="${item.nodeID}" data-demo="${item.forDemonstration ?? false}">${item.title ?? 'Untitled'}</div>`;
+                }
+            }
+            html += `</fieldset>`;
+        }
+    }
+    return html;
+}
+
+function renderTours(tours, lang) {
+    let html = "";
+    for (const tour of tours) {
+        html += `<div data-tour="${tour.tour_id}" data-debug="${tour.debug ?? false}">${tour['title-' + lang] ?? 'Untitled'}</div>`;
+    }
+    return html;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+
     setInterval(() => {
         fetch('/last_data/', {})
             .then(response => response.json())
@@ -45,8 +74,9 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             console.log(data);
-            document.getElementById('destinations').innerText = JSON.stringify(data.sections.ja, null, 2);
-            document.getElementById('tours').innerText = JSON.stringify(data.tours, null, 2);
+            const lang = 'ja'
+            document.getElementById('destinations').innerHTML = renderSections(data.sections[lang]);
+            document.getElementById('tours').innerHTML = renderTours(data.tours, lang);
         })
         .catch(error => console.error('Error:', error));
 });
