@@ -6,6 +6,7 @@ let __debug__ = {};
 let current_lang = '';
 let add_destination_dialog;
 let generic_confirm_dialog;
+let generic_manage_dialog;
 
 function post_data(url, body) {
     fetch(url, {
@@ -87,7 +88,22 @@ function confirm_share(prompt_html, yes_text, no_text, share_data) {
 function generic_confirm_close(event) {
     const dialog = event.target;
     if (dialog.returnValue == 'yes') {
-        dialog.share_data && share(dialog.share_data);
+        hare(dialog.share_data);
+    }
+}
+
+function confirm_manage(prompt_html, yes_text, no_text, manage) {
+    document.getElementById('manage_prompt').innerHTML = prompt_html;
+    document.getElementById('manage_yes').textContent = yes_text;
+    document.getElementById('manage_no').textContent = no_text;
+    generic_manage_dialog.dataset.manage = manage;
+    generic_manage_dialog.showModal();
+}
+
+function generic_manage_close(event) {
+    const dialog = event.target;
+    if (dialog.returnValue == 'yes') {
+        manage(dialog.dataset.manage);
     }
 }
 
@@ -234,6 +250,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     generic_confirm_dialog = document.getElementById('generic_confirm_dialog');
     generic_confirm_dialog.addEventListener('close', generic_confirm_close);
+
+    generic_manage_dialog = document.getElementById('generic_manage_dialog');
+    generic_manage_dialog.addEventListener('close', generic_manage_close);
 
     fetch('/directory/', {})
         .then(response => response.json())
