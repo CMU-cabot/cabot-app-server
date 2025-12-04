@@ -1,7 +1,9 @@
 let directory_data = {};
 let node_names = {};
+let last_data = {};
 let __debug__ = {};
 let current_lang = '';
+let add_destination_dialog;
 
 function post_data(url, body) {
     fetch(url, {
@@ -43,9 +45,33 @@ function toggleBox(legend) {
 }
 
 function add_destination(node) {
-    const clear = confirm('全部消してから追加しますか？');
-    const first = clear || confirm('最初に追加しますか？');
-    share({ type: 'OverrideDestination', value: node, flag1: clear, flag2: first });
+    const tour = last_data['share.Tour']?.at(-1);
+    if (tour) {
+        let count = tour.currentDestination ? 1 : 0 + (tour.destinations ?? []).length;
+        if (count > 0) {
+            document.getElementById('destination_count').textContent = count;
+            add_destination_dialog.dataset.node = node;
+            add_destination_dialog.showModal();
+            return;
+        }
+    }
+    share({ type: 'OverrideDestination', value: node });
+}
+
+function add_destination_close(event) {
+    const dialog = event.target;
+    let clear = false, first = false;
+    switch (dialog.returnValue) {
+        case "replace":
+            clear = true;
+            break;
+        case "first":
+            first = true;
+            break;
+        case "cancel":
+            return;
+    }
+    share({ type: 'OverrideDestination', value: dialog.dataset.node, flag1: clear, flag2: first });
 }
 
 function set_tour(tour) {
@@ -176,6 +202,10 @@ function build_index() {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    add_destination_dialog = document.getElementById('add_destination_dialog');
+    add_destination_dialog.addEventListener('close', add_destination_close);
+
+
     fetch('/directory/', {})
         .then(response => response.json())
         .then(data => {
@@ -188,6 +218,7 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('/last_data/', {})
             .then(response => response.json())
             .then(data => {
+                last_data = data;
                 let lang = data['share.ChangeLanguage']?.at(-1);
                 if (lang == 'zh-Hans') {
                     lang = 'zh-CN';

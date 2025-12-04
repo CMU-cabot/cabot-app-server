@@ -35,7 +35,7 @@
         <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.65'})">速い</button>
         <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">とても速い</button>
         <hr>
-        <input type="text" id="speak_text" value="こんにちは、お元気ですか？" size="50"/>
+        <input type="text" id="speak_text" value="こんにちは、お元気ですか？" size="50" />
         <button onclick="speak_text()">読み上げ</button>
     </fieldset>
     <fieldset>
@@ -68,7 +68,7 @@
     </fieldset>
     <fieldset>
         <legend>対話履歴</legend>
-        <div id="chat_histories" class="chat-container"/>
+        <div id="chat_histories" class="chat-container" />
     </fieldset>
     <fieldset>
         <legend>行き先リスト</legend>
@@ -91,6 +91,20 @@
         <pre id="messages" />
     </fieldset>
 
+    <dialog id="add_destination_dialog">
+        <form method="dialog">
+            <p>
+                既に<span id="destination_count"></span>個の目的地が設定されています。<br>
+                どのようにしますか？
+            </p>
+            <menu>
+                <button value="replace">全部消してから追加する</button>
+                <button value="first">最初に追加する</button>
+                <button value="last">最後に追加する</button>
+                <button value="cancel">キャンセル</button>
+            </menu>
+        </form>
+    </dialog>
 </body>
 
 </html>
