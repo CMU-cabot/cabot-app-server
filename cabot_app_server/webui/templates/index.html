@@ -53,9 +53,9 @@
     </fieldset>
     <fieldset>
         <legend>アクション</legend>
-        <button onclick="confirm_manage('スーツケースとの接続が解除されます', 'リブート', 'キャンセル','reboot')">リブート</button>
-        <button onclick="confirm_manage('スーツケースのシステム起動を実行します', 'システム起動', 'キャンセル', 'start')">システム起動</button>
-        <button onclick="confirm_manage('スーツケースのシステム停止しますが、よろしいですか？', 'システム停止', 'キャンセル', 'stop')">システム停止</button>
+        <button onclick="generic_confirm('スーツケースとの接続が解除されます', 'リブート', 'キャンセル', 'manage', 'reboot')">リブート</button>
+        <button onclick="generic_confirm('スーツケースのシステム起動を実行します', 'システム起動', 'キャンセル', 'manage', 'start')">システム起動</button>
+        <button onclick="generic_confirm('スーツケースのシステム停止しますが、よろしいですか？', 'システム停止', 'キャンセル', 'manage', 'stop')">システム停止</button>
     </fieldset>
     <fieldset>
         <legend>位置推定</legend>
@@ -111,15 +111,6 @@
             <menu>
                 <button value="yes" id="generic_yes" />
                 <button value="no" id="generic_no" />
-            </menu>
-        </form>
-    </dialog>
-    <dialog id="generic_manage_dialog">
-        <form method="dialog">
-            <p id="manage_prompt" />
-            <menu>
-                <button value="yes" id="manage_yes" />
-                <button value="no" id="manage_no" />
             </menu>
         </form>
     </dialog>

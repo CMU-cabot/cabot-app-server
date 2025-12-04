@@ -6,7 +6,6 @@ let __debug__ = {};
 let current_lang = '';
 let add_destination_dialog;
 let generic_confirm_dialog;
-let generic_manage_dialog;
 
 function post_data(url, body) {
     fetch(url, {
@@ -77,46 +76,40 @@ function add_destination_close(event) {
     share({ type: 'OverrideDestination', value: dialog.dataset.node, flag1: clear, flag2: first });
 }
 
-function confirm_share(prompt_html, yes_text, no_text, share_data) {
+function generic_confirm(prompt_html, yes_text, no_text, type, value) {
     document.getElementById('generic_prompt').innerHTML = prompt_html;
     document.getElementById('generic_yes').textContent = yes_text;
     document.getElementById('generic_no').textContent = no_text;
-    generic_confirm_dialog.share_data = share_data;
+    generic_confirm_dialog.generic_type = type;
+    generic_confirm_dialog.generic_value = value;
     generic_confirm_dialog.showModal();
 }
 
 function generic_confirm_close(event) {
     const dialog = event.target;
     if (dialog.returnValue == 'yes') {
-        hare(dialog.share_data);
+        switch (dialog.generic_type) {
+            case 'manage':
+                manage(dialog.generic_value);
+                break;
+            case 'share':
+                share(dialog.generic_value);
+                break;
+        }
     }
 }
 
-function confirm_manage(prompt_html, yes_text, no_text, manage) {
-    document.getElementById('manage_prompt').innerHTML = prompt_html;
-    document.getElementById('manage_yes').textContent = yes_text;
-    document.getElementById('manage_no').textContent = no_text;
-    generic_manage_dialog.dataset.manage = manage;
-    generic_manage_dialog.showModal();
-}
-
-function generic_manage_close(event) {
-    const dialog = event.target;
-    if (dialog.returnValue == 'yes') {
-        manage(dialog.dataset.manage);
-    }
-}
 
 function set_tour(tour) {
-    confirm_share(`ツアーを送信：${tour_name(tour)}<br>ユーザーのツアーが上書きされます`, 'ツアーを送信', 'キャンセル', { type: 'OverrideTour', value: tour });
+    generic_confirm(`ツアーを送信：${tour_name(tour)}<br>ユーザーのツアーが上書きされます`, 'ツアーを送信', 'キャンセル', 'share', { type: 'OverrideTour', value: tour });
 }
 
 function clear_destinations(count) {
-    confirm_share(`${count}個の目的地が設定されています。<br>全てキャンセルしてよろしいですか？`, 'すべての目的地を中止', 'いいえ', { type: 'ClearDestinations' });
+    generic_confirm(`${count}個の目的地が設定されています。<br>全てキャンセルしてよろしいですか？`, 'すべての目的地を中止', 'いいえ', 'share', { type: 'ClearDestinations' });
 }
 
 function skip(node) {
-    confirm_share('本当にこの目的地をスキップしたいですか？', `${destination_name(node)}をスキップ`, 'いいえ', { type: 'Skip', value: node });
+    generic_confirm('本当にこの目的地をスキップしたいですか？', `${destination_name(node)}をスキップ`, 'いいえ', 'share', { type: 'Skip', value: node });
 }
 
 function renderSections(sections, level = 0) {
@@ -250,9 +243,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     generic_confirm_dialog = document.getElementById('generic_confirm_dialog');
     generic_confirm_dialog.addEventListener('close', generic_confirm_close);
-
-    generic_manage_dialog = document.getElementById('generic_manage_dialog');
-    generic_manage_dialog.addEventListener('close', generic_manage_close);
 
     fetch('/directory/', {})
         .then(response => response.json())
