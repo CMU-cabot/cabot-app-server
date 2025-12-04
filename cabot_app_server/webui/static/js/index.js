@@ -130,7 +130,7 @@ function clear_destinations(count) {
 }
 
 function destination_name(node) {
-    return node_names[node.split("#")[0]] ?? node;
+    return node_names[node.split(/[#@]/)[0]] ?? node;
 }
 
 function skip(node) {
