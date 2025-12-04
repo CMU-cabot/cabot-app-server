@@ -1,5 +1,6 @@
 let directory_data = {};
 let node_names = {};
+let __debug__ = {};
 let current_lang = '';
 
 function post_data(url, body) {
@@ -114,7 +115,7 @@ function skip(node) {
 
 function renderCurrentDestinations(data) {
     let html = "";
-    const tour = data['share.Tour']?.[0];
+    const tour = data['share.Tour']?.at(-1);
     let skip = true;
     if (tour) {
         let count = tour.currentDestination ? 1 : 0 + (tour.destinations ?? []).length;
@@ -134,6 +135,22 @@ function renderCurrentDestinations(data) {
                 skip = false;
             }
         }
+    }
+    return html;
+}
+
+function renderSpeakHistories(data) {
+    let html = '';
+    for (const text of data['share.Speak'] ?? []) {
+        html += `<p>${text}</p>`;
+    }
+    return html;
+}
+
+function renderChatHistories(data) {
+    let html = '';
+    for (const item of data['share.ChatStatus'] ?? []) {
+        html += `<div class="bubble ${item.user.toLowerCase()}">${item.text}</div>`;
     }
     return html;
 }
@@ -167,11 +184,11 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .catch(error => console.error('Error:', error));
 
-    setInterval(() => {
+    __debug__.data_timer = setInterval(() => {
         fetch('/last_data/', {})
             .then(response => response.json())
             .then(data => {
-                let lang = data['share.ChangeLanguage']?.[0];
+                let lang = data['share.ChangeLanguage']?.at(-1);
                 if (lang == 'zh-Hans') {
                     lang = 'zh-CN';
                 }
@@ -182,13 +199,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('tours').innerHTML = renderTours(directory_data.tours);
                     build_index();
                 }
+                document.getElementById('speak_histories').innerHTML = renderSpeakHistories(data);
+                document.getElementById('chat_histories').innerHTML = renderChatHistories(data);
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
                 document.getElementById('current_destinations').innerHTML = renderCurrentDestinations(data);
             })
             .catch(error => console.error('Error:', error));
     }, 1000);
 
-    setInterval(() => {
+    __debug__.camera_timer = setInterval(() => {
         fetch('/camera_image/', {})
             .then(response => response.json())
             .then(data => {

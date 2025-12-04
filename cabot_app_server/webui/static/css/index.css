@@ -15,3 +15,31 @@ fieldset.collapsed {
   padding: 0;
   margin: 0;
 }
+
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: auto;
+  }
+
+  .bubble {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    white-space: pre-wrap;
+    line-height: 1.4;
+  }
+
+  .agent {
+    align-self: flex-start;
+    background: #ffffff;
+    border: 1px solid #ddd;
+  }
+
+  .user {
+    align-self: flex-end;
+    background: #00f;
+    color: #fff;
+    border-radius: 12px 12px 0 12px;
+  }
