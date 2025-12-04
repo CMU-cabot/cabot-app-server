@@ -1,3 +1,7 @@
+let directory_data = {};
+let node_names = {};
+let current_lang = '';
+
 function post_data(url, body) {
     fetch(url, {
         method: 'POST',
@@ -12,14 +16,14 @@ function post_data(url, body) {
 
 function share(data) {
     const defaults = {
-        flag1: false, flag2: false, location: 0, length: 0, info_id: new Date().getTime() * 1000000
+        value: '', flag1: false, flag2: false, location: 0, length: 0, info_id: new Date().getTime() * 1000000
     };
     post_data('/publish/', { event: 'share', data: JSON.stringify({ ...defaults, ...data }) });
 }
 
 function speak(data) {
     const defaults = {
-        rate: 50, pitch: 50, volume: 50, lang: 'ja', voice: 'male', force: false, priority: 90, timeout: 2.0, channels: 3, request_id: new Date().getTime() * 1000000
+        rate: 50, pitch: 50, volume: 50, lang: current_lang, voice: 'male', force: false, priority: 90, timeout: 2.0, channels: 3, request_id: new Date().getTime() * 1000000
     };
     post_data('/publish/', { event: 'speak', data: JSON.stringify({ ...defaults, ...data }) });
 }
@@ -43,7 +47,13 @@ function add_destination(node) {
     share({ type: 'OverrideDestination', value: node, flag1: clear, flag2: first });
 }
 
-function renderSections(sections, destinations, level = 0) {
+function set_tour(tour) {
+    if (confirm('ツアーを送信しますか？')) {
+        share({ type: 'OverrideTour', value: tour });
+    }
+}
+
+function renderSections(sections, level = 0) {
     let html = "";
     for (const section of sections) {
         if (section.items) {
@@ -53,12 +63,12 @@ function renderSections(sections, destinations, level = 0) {
             for (const item of section.items) {
                 if (item.content?.sections) {
                     html += `<fieldset class="collapsed"><legend onclick="toggleBox(this)">${item.title}</legend>`;
-                    html += renderSections(item.content.sections, destinations, level + 1);
+                    html += renderSections(item.content.sections, level + 1);
                     html += `</fieldset>`;
                 } else {
                     if (item.nodeID) {
                         let nodeID = item.nodeID;
-                        for (const dest of destinations) {
+                        for (const dest of directory_data.destinations) {
                             if (dest.value == nodeID) {
                                 if ('arrivalAngle' in dest) {
                                     nodeID = `${nodeID}@${dest.arrivalAngle}`
@@ -66,7 +76,7 @@ function renderSections(sections, destinations, level = 0) {
                                 break;
                             }
                         }
-                        html += `<div data-demo="${item.forDemonstration ?? false}" onclick="add_destination('${nodeID}')">${item.title ?? 'Untitled'}</div>`;
+                        html += `<div onclick="add_destination('${nodeID}')">${item.title ?? nodeID}</div>`;
                     }
                 }
             }
@@ -78,24 +88,106 @@ function renderSections(sections, destinations, level = 0) {
     return html;
 }
 
-function renderTours(tours, lang) {
+function renderTours(tours) {
     let html = "";
     for (const tour of tours) {
-        html += `<div data-tour="${tour.tour_id}" data-debug="${tour.debug ?? false}">${tour['title-' + lang] ?? 'Untitled'}</div>`;
+        html += `<div onclick="set_tour('${tour.tour_id}')">${tour['title-' + current_lang] ?? tour.tour_id}${tour.debug ? ' (Debug)' : ''}</div>`;
     }
     return html;
 }
 
+function clear_destinations(count) {
+    if (confirm(`${count}個の目的地をキャンセルしますか？`)) {
+        share({ type: 'ClearDestinations' });
+    }
+}
+
+function destination_name(node) {
+    return node_names[node.split("#")[0]] ?? node;
+}
+
+function skip(node) {
+    if (confirm(`${destination_name(node)}をスキップしますか？`)) {
+        share({ type: 'Skip', value: node });
+    }
+}
+
+function renderCurrentDestinations(data) {
+    let html = "";
+    const tour = data['share.Tour']?.[0];
+    let skip = true;
+    if (tour) {
+        let count = tour.currentDestination ? 1 : 0 + (tour.destinations ?? []).length;
+        if (count > 0) {
+            html += `<button onclick="clear_destinations(${count})">ナビゲーションを中止</button>`;
+        }
+        if (tour.currentDestination) {
+            const name = destination_name(tour.currentDestination);
+            html += `<div>${name}</div><button onclick="skip('${tour.currentDestination}')">${name}をスキップ</button><hr>`;
+            skip = false;
+        }
+        for (const destination of tour.destinations ?? []) {
+            const name = destination_name(destination);
+            html += `<div>${name}</div>`;
+            if (skip) {
+                html += `<button onclick="skip('${destination}')">${name}をスキップ</button>`;
+                skip = false;
+            }
+        }
+    }
+    return html;
+}
+
+function build_index() {
+    node_names = {};
+    for (const feature of directory_data.features) {
+        const p = feature.properties ?? {};
+        if (p.facil_id) {
+            const name = p[`name_${current_lang}`];
+            if (name) {
+                for (let i = 1; i <= 9; i++) {
+                    const node = p[`ent${i}_node`];
+                    if (node) {
+                        const ent_name = p[`ent${i}_n`];
+                        node_names[node] = `${name}${ent_name ? ' ' + ent_name : ''}`;
+                    }
+                }
+            }
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+
+    fetch('/directory/', {})
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            directory_data = data;
+        })
+        .catch(error => console.error('Error:', error));
 
     setInterval(() => {
         fetch('/last_data/', {})
             .then(response => response.json())
             .then(data => {
+                let lang = data['share.ChangeLanguage']?.[0];
+                if (lang == 'zh-Hans') {
+                    lang = 'zh-CN';
+                }
+                if (lang && lang != current_lang) {
+                    console.log(`Switch to ${lang}`);
+                    current_lang = lang;
+                    document.getElementById('destinations').innerHTML = renderSections(directory_data.sections[current_lang]);
+                    document.getElementById('tours').innerHTML = renderTours(directory_data.tours);
+                    build_index();
+                }
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
+                document.getElementById('current_destinations').innerHTML = renderCurrentDestinations(data);
             })
             .catch(error => console.error('Error:', error));
     }, 1000);
+
     setInterval(() => {
         fetch('/camera_image/', {})
             .then(response => response.json())
@@ -108,13 +200,4 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => console.error('Error:', error));
     }, 1000);
-    fetch('/directory/', {})
-        .then(response => response.json())
-        .then(data => {
-            console.log(data);
-            const lang = 'ja'
-            document.getElementById('destinations').innerHTML = renderSections(data.sections[lang], data.destinations);
-            document.getElementById('tours').innerHTML = renderTours(data.tours, lang);
-        })
-        .catch(error => console.error('Error:', error));
 });

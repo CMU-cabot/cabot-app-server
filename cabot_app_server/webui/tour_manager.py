@@ -42,4 +42,4 @@ class TourManager:
         threading.Thread(target=self.background_task).start()
 
     def format_directories(self):
-        return {'sections': {lang: item.get('sections', []) for lang, item in self.directory.items()}} | {k: v for k, v in self.tour_data.items()}
+        return {'sections': {lang: item.get('sections', []) for lang, item in self.directory.items()}} | {'features': self.features} | {k: v for k, v in self.tour_data.items()}
