@@ -1,13 +1,13 @@
 body {
-    background-color: #f0f0f0;
+  background-color: #f0f0f0;
 }
 
 #camera_image {
-    width: 320px;
+  width: 320px;
 }
 
 fieldset.collapsed> :not(legend) {
-    display: none;
+  display: none;
 }
 
 fieldset.collapsed {
@@ -16,30 +16,40 @@ fieldset.collapsed {
   margin: 0;
 }
 
-  .chat-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin: auto;
-  }
+#speak_histories div {
+  margin: 10px 0px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  width: fit-content;
+  white-space: pre-wrap;
+  line-height: 1.4;
+  background: #fff;
+}
 
-  .bubble {
-    max-width: 75%;
-    padding: 10px 14px;
-    border-radius: 12px;
-    white-space: pre-wrap;
-    line-height: 1.4;
-  }
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: auto;
+}
 
-  .agent {
-    align-self: flex-start;
-    background: #ffffff;
-    border: 1px solid #ddd;
-  }
+.bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
 
-  .user {
-    align-self: flex-end;
-    background: #00f;
-    color: #fff;
-    border-radius: 12px 12px 0 12px;
-  }
+.agent {
+  align-self: flex-start;
+  background: #ffffff;
+  border: 1px solid #ddd;
+}
+
+.user {
+  align-self: flex-end;
+  background: #00f;
+  color: #fff;
+  border-radius: 12px 12px 0 12px;
+}

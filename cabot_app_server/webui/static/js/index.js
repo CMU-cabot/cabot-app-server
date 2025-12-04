@@ -142,7 +142,7 @@ function renderCurrentDestinations(data) {
 function renderSpeakHistories(data) {
     let html = '';
     for (const text of data['share.Speak'] ?? []) {
-        html += `<p>${text}</p>`;
+        html += `<div>${text}</div>`;
     }
     return html;
 }
