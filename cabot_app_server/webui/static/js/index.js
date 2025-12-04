@@ -1,9 +1,11 @@
 let directory_data = {};
 let node_names = {};
+let tour_names = {};
 let last_data = {};
 let __debug__ = {};
 let current_lang = '';
 let add_destination_dialog;
+let generic_confirm_dialog;
 
 function post_data(url, body) {
     fetch(url, {
@@ -74,10 +76,31 @@ function add_destination_close(event) {
     share({ type: 'OverrideDestination', value: dialog.dataset.node, flag1: clear, flag2: first });
 }
 
-function set_tour(tour) {
-    if (confirm('ツアーを送信しますか？')) {
-        share({ type: 'OverrideTour', value: tour });
+function confirm_share(prompt_html, yes_text, no_text, share_data) {
+    document.getElementById('generic_prompt').innerHTML = prompt_html;
+    document.getElementById('generic_yes').textContent = yes_text;
+    document.getElementById('generic_no').textContent = no_text;
+    generic_confirm_dialog.share_data = share_data;
+    generic_confirm_dialog.showModal();
+}
+
+function generic_confirm_close(event) {
+    const dialog = event.target;
+    if (dialog.returnValue == 'yes') {
+        dialog.share_data && share(dialog.share_data);
     }
+}
+
+function set_tour(tour) {
+    confirm_share(`ツアーを送信：${tour_name(tour)}<br>ユーザーのツアーが上書きされます`, 'ツアーを送信', 'キャンセル', { type: 'OverrideTour', value: tour });
+}
+
+function clear_destinations(count) {
+    confirm_share(`${count}個の目的地が設定されています。<br>全てキャンセルしてよろしいですか？`, 'すべての目的地を中止', 'いいえ', { type: 'ClearDestinations' });
+}
+
+function skip(node) {
+    confirm_share('本当にこの目的地をスキップしたいですか？', `${destination_name(node)}をスキップ`, 'いいえ', { type: 'Skip', value: node });
 }
 
 function renderSections(sections, level = 0) {
@@ -118,25 +141,17 @@ function renderSections(sections, level = 0) {
 function renderTours(tours) {
     let html = "";
     for (const tour of tours) {
-        html += `<div onclick="set_tour('${tour.tour_id}')">${tour['title-' + current_lang] ?? tour.tour_id}${tour.debug ? ' (Debug)' : ''}</div>`;
+        html += `<div onclick="set_tour('${tour.tour_id}')">${tour_names[tour.tour_id]}${tour.debug ? ' (Debug)' : ''}</div>`;
     }
     return html;
-}
-
-function clear_destinations(count) {
-    if (confirm(`${count}個の目的地をキャンセルしますか？`)) {
-        share({ type: 'ClearDestinations' });
-    }
 }
 
 function destination_name(node) {
     return node_names[node.split(/[#@]/)[0]] ?? node;
 }
 
-function skip(node) {
-    if (confirm(`${destination_name(node)}をスキップしますか？`)) {
-        share({ type: 'Skip', value: node });
-    }
+function tour_name(tour) {
+    return tour_names[tour] ?? tour;
 }
 
 function renderCurrentDestinations(data) {
@@ -198,6 +213,18 @@ function build_index() {
             }
         }
     }
+
+    tour_names = {}
+    for (const tour of directory_data.tours) {
+        tour_names[tour.tour_id] = tour['title-' + current_lang];
+    }
+}
+
+function replaceHTML(id, html) {
+    const element = document.getElementById(id);
+    if (element && element.innerHTML != html) {
+        element.innerHTML = html;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -205,6 +232,8 @@ document.addEventListener('DOMContentLoaded', function () {
     add_destination_dialog = document.getElementById('add_destination_dialog');
     add_destination_dialog.addEventListener('close', add_destination_close);
 
+    generic_confirm_dialog = document.getElementById('generic_confirm_dialog');
+    generic_confirm_dialog.addEventListener('close', generic_confirm_close);
 
     fetch('/directory/', {})
         .then(response => response.json())
@@ -226,14 +255,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (lang && lang != current_lang) {
                     console.log(`Switch to ${lang}`);
                     current_lang = lang;
-                    document.getElementById('destinations').innerHTML = renderSections(directory_data.sections[current_lang]);
-                    document.getElementById('tours').innerHTML = renderTours(directory_data.tours);
                     build_index();
+                    replaceHTML('destinations', renderSections(directory_data.sections[current_lang]));
+                    replaceHTML('tours', renderTours(directory_data.tours));
                 }
-                document.getElementById('speak_histories').innerHTML = renderSpeakHistories(data);
-                document.getElementById('chat_histories').innerHTML = renderChatHistories(data);
+                replaceHTML('speak_histories', renderSpeakHistories(data));
+                replaceHTML('chat_histories', renderChatHistories(data));
+                replaceHTML('current_destinations', renderCurrentDestinations(data));
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
-                document.getElementById('current_destinations').innerHTML = renderCurrentDestinations(data);
             })
             .catch(error => console.error('Error:', error));
     }, 1000);

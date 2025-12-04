@@ -53,3 +53,9 @@ fieldset.collapsed {
   color: #fff;
   border-radius: 12px 12px 0 12px;
 }
+
+dialog menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
