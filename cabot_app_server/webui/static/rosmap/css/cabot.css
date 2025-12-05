@@ -1,0 +1,86 @@
+/*******************************************************************************
+ * Copyright (c) 2023  Carnegie Mellon University and Miraikan
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *******************************************************************************/
+
+p, table {
+    margin: 4px;
+}
+
+body {
+    margin: 0px;
+    background-color: #f0f0f0;
+    text-align: center;
+}
+
+#map {
+    margin: 0px;
+}
+
+#help {
+    color: #ff0000;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+      background-color: #000000;
+      color: #ffffff;
+    }
+
+    p {
+        color: #ffffff;
+    }
+
+    td {
+        color: #ffffff;
+    }
+}
+
+div.button {
+    padding: 10px;
+    margin: 5px;
+    display: inline-block;
+    border: 1px solid black;
+    border-radius: 5px;
+    text-align: center;
+}
+
+div.three {
+    width: 30%;
+    display: inline-block;
+    // border: 1px solid black;
+    text-align: center;
+}
+
+#loading {
+    display: none;
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	height: 100%;
+	width: 100%;
+	background-color: #FFF;
+	background-image: url("loading.gif");
+	background-repeat: no-repeat;
+	background-position: center;
+	filter: alpha(opacity = 85);
+	-moz-opacity: 0.85;
+	opacity: 0.85;
+}
