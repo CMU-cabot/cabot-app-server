@@ -9,6 +9,31 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclpy REQUIRED)
 
+find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
+
+add_executable(map_visualizer_cpp src/map_visualizer_node.cpp)
+ament_target_dependencies(map_visualizer_cpp
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  cv_bridge
+  OpenCV
+)
+target_include_directories(map_visualizer_cpp PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -34,6 +59,9 @@ install(PROGRAMS
 )
 
 install(DIRECTORY webui/ DESTINATION lib/${PROJECT_NAME}/)
+
+install(TARGETS map_visualizer_cpp
+  DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
 
