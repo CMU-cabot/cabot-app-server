@@ -45,8 +45,8 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
+    const ip = urlParams.get('ip') || location.host.split(':')[0];
     window.onload = function() {
-        const ip = urlParams.get('ip') || location.host.split(':')[0];
         const url = `ws://${ip}:9091`;
         msg.innerText = "connecting to "+url;
         connection(url);
@@ -352,5 +352,37 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
         });
     }
 </script>
-
+<script>
+    let reload_counter = 0;
+    const image_timer = setInterval(() => {
+        if (msg.innerText != 'Connection made!') {
+            if (++reload_counter > 10) {
+                location.reload();
+            } else {
+                console.log(msg.innerText);
+            }
+            return;
+        }
+        reload_counter = 0;
+        const canvas = window.ros3d_viewer?.renderer?.domElement;
+        if (canvas) {
+            const image_data = canvas.toDataURL("image/png");
+            fetch("/upload_image", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ type: 'rosmap', image: image_data })
+            })
+                .then(async res => {
+                    if (res.ok) {
+                        return res.json();
+                    }
+                    throw new Error(`HTTP ${res.status}`);
+                })
+                .then(result => console.log("Uploaded:", result, image_data.length))
+                .catch(err => console.error(err));
+        }
+    }, 1000);
+</script>
 </html>

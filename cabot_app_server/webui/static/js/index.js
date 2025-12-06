@@ -288,4 +288,16 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => console.error('Error:', error));
     }, 1000);
+    __debug__.image_timer = setInterval(() => {
+        fetch('/custom_image/', {})
+            .then(response => response.json())
+            .then(data => {
+                if (data.image) {
+                    const img = document.getElementById('custom_image');
+                    img.src = data.image;
+                    img.style.transform = data.transform ?? '';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }, 1000);
 });

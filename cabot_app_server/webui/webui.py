@@ -37,6 +37,7 @@ class WebUI:
         sio: socketio.Server = server.sio
         manage_cabot_char = server.manage_cabot_char
         self.last_data = defaultdict(list)
+        self.last_image = {}
         self.tour_manager = tour_manager.TourManager()
 
         @app.route('/')
@@ -83,6 +84,16 @@ class WebUI:
                 return jsonify({'error': 'no camera image'}), 400
             m = re.search(r" (.*) compressed", msg.format)
             return jsonify({"image": f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}", "transform": "rotate(180deg)"})
+
+        @app.route('/upload_image/', methods=['POST'])
+        def upload_image():
+            self.last_image = request.get_json()
+            common.logger.info(f"/upload_image/ type={self.last_image.get('type', 'unknown')}")
+            return jsonify({'status': 'ok'})
+
+        @app.route('/custom_image/')
+        def custom_image():
+            return jsonify(self.last_image)
 
         # Socket.IO Wrappers
         original_emit = sio.emit

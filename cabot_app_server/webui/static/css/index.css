@@ -6,6 +6,10 @@ body {
   width: 320px;
 }
 
+#custom_image {
+  width: 640px;
+}
+
 fieldset.collapsed> :not(legend) {
   display: none;
 }
