@@ -79,11 +79,13 @@ class WebUI:
 
         @app.route('/camera_image/')
         def camera_image():
-            msg = common.last_camera_image
-            if not msg:
-                return jsonify({'error': 'no camera image'}), 400
-            m = re.search(r" (.*) compressed", msg.format)
-            return jsonify({"image": f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}", "transform": "rotate(180deg)"})
+            return jsonify(
+                [
+                    {'image': self._get_camera_image(common.last_camera_left_image), 'position': 'left', 'transform': 'rotate(180deg)'},
+                    {'image': self._get_camera_image(common.last_camera_image), 'position': 'center', 'transform': 'rotate(180deg)'},
+                    {'image': self._get_camera_image(common.last_camera_right_image), 'position': 'right'},
+                ]
+            )
 
         @app.route('/upload_image/', methods=['POST'])
         def upload_image():
@@ -118,6 +120,12 @@ class WebUI:
 
         self.tour_manager.load()
         common.logger.info("WebUI listening...")
+
+    def _get_camera_image(self, msg):
+        if not msg:
+            return ""
+        m = re.search(r" (.*) compressed", msg.format)
+        return f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}"
 
     def _track_event(self, event, payload, emit=False):
         if isinstance(payload, list) and len(payload) == 1:

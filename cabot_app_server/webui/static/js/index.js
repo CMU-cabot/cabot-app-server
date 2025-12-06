@@ -280,9 +280,11 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('/camera_image/', {})
             .then(response => response.json())
             .then(data => {
-                const img = document.getElementById('camera_image');
-                img.src = data.image ?? '';
-                img.style.transform = data.transform ?? '';
+                for (d of data) {
+                    const img = document.getElementById(`camera_${d.position}_image`);
+                    img.src = d.image ?? '';
+                    img.style.transform = d.transform ?? '';
+                }
             })
             .catch(error => console.error('Error:', error));
     }, 1000);

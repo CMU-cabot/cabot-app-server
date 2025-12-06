@@ -79,6 +79,10 @@ message_buffer = deque(maxlen=10)
 
 last_camera_image: CompressedImage = None
 last_camera_orientation: Quaternion = None
+last_camera_left_image: CompressedImage = None
+last_camera_left_orientation: Quaternion = None
+last_camera_right_image: CompressedImage = None
+last_camera_right_orientation: Quaternion = None
 last_location: PoseLog2 = None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -669,6 +673,8 @@ class CabotNode_Sub(Node):
         self.reset_gnss_client = self.create_client(MFTrigger, "/reset_gnss")
         self.camera_image_sub = self.create_subscription(CompressedImage, '/camera/color/image_raw/compressed', self.camera_image_callback, 10)
         self.rs1_image_sub = self.create_subscription(CompressedImage, '/rs1/color/image_raw/compressed', self.camera_image_callback, 10)
+        self.rs2_image_sub = self.create_subscription(CompressedImage, '/rs2/color/image_raw/compressed', self.camera_right_image_callback, 10)
+        self.rs3_image_sub = self.create_subscription(CompressedImage, '/rs3/color/image_raw/compressed', self.camera_left_image_callback, 10)
         self.location_sub = self.create_subscription(PoseLog2, '/cabot/pose_log2', self.location_callback, 10)
 
     def diagnostic_agg_callback(self, msg):
@@ -713,6 +719,22 @@ class CabotNode_Sub(Node):
             # msg.header.frame_id is the camera optical frame which is (X-right, Y-down, Z-forward)
             # ROS2 uses (X-forward, Y-left, Z-up), so the oprical frame is rotated (-PI/2, 0, -PI/2)
             last_camera_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
+        except:  # noqa: E722
+            pass
+
+    def camera_left_image_callback(self, msg):
+        global last_camera_left_image, last_camera_left_orientation
+        last_camera_left_image = msg
+        try:
+            last_camera_left_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
+        except:  # noqa: E722
+            pass
+
+    def camera_right_image_callback(self, msg):
+        global last_camera_right_image, last_camera_right_orientation
+        last_camera_right_image = msg
+        try:
+            last_camera_right_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
         except:  # noqa: E722
             pass
 
