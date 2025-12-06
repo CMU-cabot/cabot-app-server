@@ -255,17 +255,24 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
                 const tf = new ROSLIB.Transform(map_global_map);
                 const poseTransformed = new ROSLIB.Pose(msg);
                 poseTransformed.applyTransform(tf);
-                const dir = new THREE.Vector3();
-                viewer.camera.getWorldDirection(dir);
-                const dot = Math.abs(dir.dot(new THREE.Vector3(0, 1, 0)));
-                if (dot > 0.01) {
-                    viewer.cameraControls.center.set(poseTransformed.position.x, poseTransformed.position.y, poseTransformed.position.z);
+
+                const robotPos = new THREE.Vector3(
+                    poseTransformed.position.x,
+                    poseTransformed.position.y,
+                    poseTransformed.position.z
+                );
+
+                const ndc = robotPos.clone().project(viewer.camera);
+                if (Math.abs(ndc.x) > 0.8 || Math.abs(ndc.y) > 0.8) {
+                    firstTime = true;
                 }
+
                 if (firstTime) {
                     // set camera above the robot position
                     // y - 5 stabilize camera orientation
                     firstTime = false;
-                    viewer.camera.position.set(poseTransformed.position.x, poseTransformed.position.y - 5, 50);
+                    viewer.cameraControls.center.copy(robotPos);
+                    viewer.camera.position.set(robotPos.x, robotPos.y - 5, 50);
                 }
             }
         };
