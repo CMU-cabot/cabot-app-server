@@ -158,6 +158,7 @@ RUN apt update && \
 	ros-humble-rmw-cyclonedds-cpp \
 	ros-humble-diagnostic-updater \
 	ros-humble-tf-transformations \
+	ros-${ROS_DISTRO}-compressed-image-transport \
     ros-${ROS_DISTRO}-cv-bridge \
     ros-${ROS_DISTRO}-tf2-ros \
     ros-${ROS_DISTRO}-nav-msgs \

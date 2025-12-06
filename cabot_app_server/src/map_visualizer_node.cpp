@@ -10,6 +10,7 @@
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/utils.h>
@@ -56,7 +57,7 @@ public:
     scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(
       "/scan", scan_qos, std::bind(&MapVisualizer::scanCallback, this, std::placeholders::_1));
 
-    image_pub_ = create_publisher<sensor_msgs::msg::Image>("/viz_image", 1);
+    image_pub_ = image_transport::create_publisher(this, "/rosmap_image");
 
     RCLCPP_INFO(get_logger(), "map_visualizer_cpp node started");
   }
@@ -162,7 +163,7 @@ private:
 
     auto img_msg = cv_bridge::CvImage(msg->header, "bgr8", output).toImageMsg();
     img_msg->header.frame_id = map_frame_;
-    image_pub_->publish(*img_msg);
+    image_pub_.publish(img_msg);
     last_publish_time_ = now;
   }
 
@@ -232,7 +233,7 @@ private:
   tf2_ros::TransformListener tf_listener_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
+  image_transport::Publisher image_pub_;
 };
 
 int main(int argc, char ** argv)

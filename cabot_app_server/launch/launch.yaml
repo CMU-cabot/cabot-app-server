@@ -4,3 +4,28 @@ launch:
       pkg: cabot_app_server
       exec: cabot_app.py
       name: cabot_app_server
+  - node:
+      pkg: cabot_app_server
+      exec: map_visualizer_cpp
+      param:
+      -
+        "name": "map_frame"
+        "value": "map"
+      -
+        "name": "base_frame"
+        "value": "base_footprint"
+      -
+        "name": "range_ring_m"
+        "value": 0.2
+      -
+        "name": "arrow_m"
+        "value": 0.7
+      -
+        "name": "crop_radius_m"
+        "value": 15.0
+      -
+        "name": "occupied_threshold"
+        "value": 50
+      -
+        "name": "publish_rate_hz"
+        "value": 1.0

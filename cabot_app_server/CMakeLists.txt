@@ -17,6 +17,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(image_transport REQUIRED)
 
 add_executable(map_visualizer_cpp src/map_visualizer_node.cpp)
 ament_target_dependencies(map_visualizer_cpp
@@ -29,6 +30,7 @@ ament_target_dependencies(map_visualizer_cpp
   tf2_geometry_msgs
   cv_bridge
   OpenCV
+  image_transport
 )
 target_include_directories(map_visualizer_cpp PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
