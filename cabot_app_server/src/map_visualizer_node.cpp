@@ -124,12 +124,22 @@ private:
     cv::Mat output = overlay;
     if (robot_pixel && crop_radius_m_ > 0.0) {
       int radius_px = std::max(1, static_cast<int>(crop_radius_m_ / map_msg_->info.resolution));
+      int crop_size = radius_px * 2 + 1;
+      cv::Mat padded(
+        crop_size, crop_size, overlay.type(), cv::Scalar(120, 120, 120));
+
       int x0 = std::max(robot_pixel->x - radius_px, 0);
       int y0 = std::max(robot_pixel->y - radius_px, 0);
       int x1 = std::min(robot_pixel->x + radius_px, overlay.cols - 1);
       int y1 = std::min(robot_pixel->y + radius_px, overlay.rows - 1);
-      cv::Rect roi(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
-      output = overlay(roi).clone();
+      cv::Rect src_roi(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+
+      int dst_x = radius_px - (robot_pixel->x - x0);
+      int dst_y = radius_px - (robot_pixel->y - y0);
+      cv::Rect dst_roi(dst_x, dst_y, src_roi.width, src_roi.height);
+
+      overlay(src_roi).copyTo(padded(dst_roi));
+      output = padded;
     }
 
     auto img_msg = cv_bridge::CvImage(msg->header, "bgr8", output).toImageMsg();
