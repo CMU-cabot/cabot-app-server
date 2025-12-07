@@ -15,6 +15,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(people_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(image_transport REQUIRED)
@@ -28,6 +29,7 @@ ament_target_dependencies(map_visualizer_cpp
   tf2
   tf2_ros
   tf2_geometry_msgs
+  people_msgs
   cv_bridge
   OpenCV
   image_transport
