@@ -27,6 +27,18 @@ launch:
         "name": "gnss_arrow_thickness_px"
         "value": 3
       -
+        "name": "point_size_px"
+        "value": 3
+      -
+        "name": "people_radius_m"
+        "value": 0.5
+      -
+        "name": "people_alpha"
+        "value": 0.7
+      -
+        "name": "path_thickness_px"
+        "value": 1
+      -
         "name": "robot_arrow_color"
         "value": [255, 0, 0]
       -
@@ -38,6 +50,15 @@ launch:
       -
         "name": "gnss_cov_alpha"
         "value": 0.25
+      -
+        "name": "point_cloud_color"
+        "value": [255, 0, 255]
+      -
+        "name": "people_color"
+        "value": [255, 0, 0]
+      -
+        "name": "path_color"
+        "value": [255, 0, 0]
       -
         "name": "crop_radius_px"
         "value": 256

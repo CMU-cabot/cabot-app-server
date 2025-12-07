@@ -58,8 +58,18 @@ public:
     arrow_thickness_px_ = declare_parameter<int>("arrow_thickness_px", 5);
     gnss_arrow_length_px_ = declare_parameter<int>("gnss_arrow_length_px", 8);
     gnss_arrow_thickness_px_ = declare_parameter<int>("gnss_arrow_thickness_px", 3);
+    point_size_px_ = declare_parameter<int>("point_size_px", 3);
+    people_radius_m_ = declare_parameter<double>("people_radius_m", 0.5);
+    people_alpha_ = declare_parameter<double>("people_alpha", 0.7);
     crop_radius_px_ = declare_parameter<int>("crop_radius_px", 256);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
+    point_cloud_color_ = colorParamToScalar(
+      declare_parameter<std::vector<int>>("point_cloud_color", {255, 0, 255}), cv::Scalar(255, 0, 255));
+    people_color_ = colorParamToScalar(
+      declare_parameter<std::vector<int>>("people_color", {255, 0, 0}), cv::Scalar(255, 0, 0));
+    path_color_ = colorParamToScalar(
+      declare_parameter<std::vector<int>>("path_color", {255, 0, 0}), cv::Scalar(255, 0, 0));
+    path_thickness_px_ = declare_parameter<int>("path_thickness_px", 1);
     robot_arrow_color_ = colorParamToScalar(
       declare_parameter<std::vector<int>>("robot_arrow_color", {255, 0, 0}), cv::Scalar(0, 0, 255));
     gnss_arrow_color_ = colorParamToScalar(
@@ -143,8 +153,8 @@ private:
     RCLCPP_DEBUG(get_logger(), "Processing point cloud with %u points", msg->width * msg->height);
 
     cv::Mat overlay = map_image_.clone();
-    drawPeople(overlay, cv::Scalar(255, 0, 0), 0.7);
-    drawPointCloud2(overlay, msg, cv::Scalar(255, 0, 255));
+    drawPeople(overlay);
+    drawPointCloud2(overlay, msg);
     drawGnss(overlay);
     auto robot_pixel = drawRobot(overlay, robot_arrow_color_);
     drawPath(overlay);
@@ -283,8 +293,7 @@ private:
 
   void drawPointCloud2(
     cv::Mat & overlay,
-    const sensor_msgs::msg::PointCloud2::SharedPtr & msg,
-    cv::Scalar color)
+    const sensor_msgs::msg::PointCloud2::SharedPtr & msg)
   {
     geometry_msgs::msg::TransformStamped transform;
     try {
@@ -309,11 +318,13 @@ private:
       if (!pixel) {
         continue;
       }
-      int x0 = std::max(pixel->x - 1, 0);
-      int y0 = std::max(pixel->y - 1, 0);
-      int x1 = std::min(pixel->x + 1, overlay.cols - 1);
-      int y1 = std::min(pixel->y + 1, overlay.rows - 1);
-      cv::rectangle(overlay, cv::Point(x0, y0), cv::Point(x1, y1), color, cv::FILLED);
+      int size = std::max(1, point_size_px_);
+      int half = size / 2;
+      int x0 = std::max(pixel->x - half, 0);
+      int y0 = std::max(pixel->y - half, 0);
+      int x1 = std::min(x0 + size - 1, overlay.cols - 1);
+      int y1 = std::min(y0 + size - 1, overlay.rows - 1);
+      cv::rectangle(overlay, cv::Point(x0, y0), cv::Point(x1, y1), point_cloud_color_, cv::FILLED);
     }
   }
 
@@ -354,14 +365,15 @@ private:
       return;
     }
 
+    int thickness = std::max(1, path_thickness_px_);
     if (points.size() == 1) {
-      cv::circle(overlay, points.front(), 1, cv::Scalar(255, 0, 0), cv::FILLED);
+      cv::circle(overlay, points.front(), thickness, path_color_, cv::FILLED);
     } else {
-      cv::polylines(overlay, points, false, cv::Scalar(255, 0, 0), 1, cv::LINE_AA);
+      cv::polylines(overlay, points, false, path_color_, thickness, cv::LINE_AA);
     }
   }
 
-  void drawPeople(cv::Mat & overlay, cv::Scalar color, double alpha)
+  void drawPeople(cv::Mat & overlay)
   {
     auto people = people_msg_;
     if (!people || people->people.empty() || !map_msg_) {
@@ -392,9 +404,10 @@ private:
       transform.transform.rotation.z = 0.0;
     }
 
-    const double fill_alpha = alpha;
-    const cv::Scalar fill_color = color;
-    int radius_px = std::max(1, static_cast<int>(0.5 / map_msg_->info.resolution));
+    const double fill_alpha = people_alpha_;
+    const cv::Scalar fill_color = people_color_;
+    int radius_px = std::max(
+      1, static_cast<int>(std::round(people_radius_m_ / map_msg_->info.resolution)));
     for (const auto & person : people->people) {
       auto world = transformPoint({person.position.x, person.position.y}, transform);
       auto pixel = worldToPixel(world.first, world.second);
@@ -464,8 +477,15 @@ private:
   int arrow_thickness_px_;
   int gnss_arrow_thickness_px_;
   int gnss_arrow_length_px_;
+  int point_size_px_;
+  double people_radius_m_;
+  double people_alpha_;
   int crop_radius_px_;
   int occupied_threshold_;
+  cv::Scalar point_cloud_color_;
+  cv::Scalar people_color_;
+  cv::Scalar path_color_;
+  int path_thickness_px_;
   cv::Scalar robot_arrow_color_;
   cv::Scalar gnss_arrow_color_;
   cv::Scalar gnss_cov_color_;
