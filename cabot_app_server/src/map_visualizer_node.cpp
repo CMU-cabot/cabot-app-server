@@ -56,6 +56,7 @@ public:
     tf_buffer_(this->get_clock()),
     tf_listener_(tf_buffer_)
   {
+    scale_ = std::max(0.1, declare_parameter<double>("scale", 1.0));
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
     arrow_length_px_ = declare_parameter<int>("arrow_length_px", 16);
@@ -133,6 +134,9 @@ private:
       }
     }
     cv::flip(img, map_image_, 0);
+    if (scale_ != 1.0) {
+      cv::resize(map_image_, map_image_, cv::Size(), scale_, scale_, cv::INTER_NEAREST);
+    }
 
     double yaw = quaternionYaw(info.origin.orientation);
     origin_cos_ = std::cos(yaw);
@@ -167,7 +171,7 @@ private:
 
     cv::Mat output = overlay;
     if (robot_pixel && crop_radius_px_ > 0) {
-      int radius_px = std::max(1, crop_radius_px_);
+      int radius_px = std::max(1, scaledPx(crop_radius_px_));
       int crop_size = radius_px * 2 + 1;
       cv::Mat padded(
         crop_size, crop_size, overlay.type(), cv::Scalar(120, 120, 120));
@@ -233,7 +237,12 @@ private:
     }
 
     int image_y = static_cast<int>(map_msg_->info.height) - 1 - iy;
-    return cv::Point(ix, image_y);
+    int scaled_x = static_cast<int>(std::round(ix * scale_));
+    int scaled_y = static_cast<int>(std::round(image_y * scale_));
+    if (scaled_x < 0 || scaled_y < 0 || scaled_x >= map_image_.cols || scaled_y >= map_image_.rows) {
+      return std::nullopt;
+    }
+    return cv::Point(scaled_x, scaled_y);
   }
 
   void pathCallback(const nav_msgs::msg::Path::SharedPtr msg)
@@ -249,6 +258,11 @@ private:
   void gnssCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
   {
     gnss_msg_ = msg;
+  }
+
+  int scaledPx(int value) const
+  {
+    return std::max(1, static_cast<int>(std::round(value * scale_)));
   }
 
   void drawFilledCircleAlpha(
@@ -291,7 +305,7 @@ private:
       if (arrow_tip) {
         cv::arrowedLine(
           overlay, *robot_pixel, *arrow_tip, color,
-          std::max(1, arrow_thickness_px_), cv::LINE_8, 0, 0.5);
+          std::max(1, scaledPx(arrow_thickness_px_)), cv::LINE_8, 0, 0.5);
       }
     }
     return robot_pixel;
@@ -324,7 +338,7 @@ private:
       if (!pixel) {
         continue;
       }
-      int size = std::max(1, point_size_px_);
+      int size = std::max(1, scaledPx(point_size_px_));
       int half = size / 2;
       int x0 = std::max(pixel->x - half, 0);
       int y0 = std::max(pixel->y - half, 0);
@@ -371,7 +385,7 @@ private:
       return;
     }
 
-    int thickness = std::max(1, path_thickness_px_);
+    int thickness = scaledPx(path_thickness_px_);
     if (points.size() == 1) {
       cv::circle(overlay, points.front(), thickness, path_color_, cv::FILLED);
     } else {
@@ -412,7 +426,7 @@ private:
 
     const double fill_alpha = people_alpha_;
     const cv::Scalar fill_color = people_color_;
-    int radius_px = std::max(1, people_radius_px_);
+    int radius_px = std::max(1, scaledPx(people_radius_px_));
     for (const auto & person : people->people) {
       auto world = transformPoint({person.position.x, person.position.y}, transform);
       auto pixel = worldToPixel(world.first, world.second);
@@ -459,16 +473,16 @@ private:
       if (tip) {
         cv::arrowedLine(
           overlay, *center, *tip, gnss_arrow_color_,
-          std::max(1, gnss_arrow_thickness_px_), cv::LINE_8, 0, 0.5);
+          std::max(1, scaledPx(gnss_arrow_thickness_px_)), cv::LINE_8, 0, 0.5);
       }
     }
 
     if (map_resolution_ > 0.0) {
       const auto & cov = gnss->pose.covariance;
-      int radius_px_fixed = std::max(1, gnss_fixed_radius_px_);
+      int radius_px_fixed = std::max(1, scaledPx(gnss_fixed_radius_px_));
       double radius_m_cov = std::max(std::sqrt(cov[0]), std::sqrt(cov[7])) * 2.0;
       int radius_px_cov = std::max(
-        1, static_cast<int>(std::round(radius_m_cov / map_resolution_ * gnss_cov_radius_scale_)));
+        1, static_cast<int>(std::round(radius_m_cov * scale_ / map_resolution_ * gnss_cov_radius_scale_)));
       drawFilledCircleAlpha(overlay, *center, radius_px_fixed, gnss_cov_color_, gnss_cov_alpha_);
       drawFilledCircleAlpha(overlay, *center, radius_px_cov, gnss_cov_color_, gnss_cov_alpha_);
     }
@@ -487,6 +501,7 @@ private:
   double people_alpha_;
   int gnss_fixed_radius_px_{8};
   double gnss_cov_radius_scale_{1.0};
+  double scale_{1.0};
   int crop_radius_px_;
   int occupied_threshold_;
   cv::Scalar point_cloud_color_;
