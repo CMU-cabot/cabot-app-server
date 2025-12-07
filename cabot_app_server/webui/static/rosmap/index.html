@@ -262,18 +262,11 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
                     poseTransformed.position.z
                 );
 
-                const ndc = robotPos.clone().project(viewer.camera);
-                if (Math.abs(ndc.x) > 0.8 || Math.abs(ndc.y) > 0.8) {
-                    firstTime = true;
-                }
-
-                if (firstTime) {
-                    // set camera above the robot position
-                    // y - 5 stabilize camera orientation
-                    firstTime = false;
-                    viewer.cameraControls.center.copy(robotPos);
-                    viewer.camera.position.set(robotPos.x, robotPos.y - 5, 50);
-                }
+                // set camera above the robot position
+                // y - 5 stabilize camera orientation
+                firstTime = false;
+                viewer.cameraControls.center.copy(robotPos);
+                viewer.camera.position.set(robotPos.x, robotPos.y - 5, 50);
             }
         };
 
