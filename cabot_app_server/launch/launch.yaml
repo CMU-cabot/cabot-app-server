@@ -18,6 +18,27 @@ launch:
         "name": "arrow_length_px"
         "value": 16
       -
+        "name": "arrow_thickness_px"
+        "value": 5
+      -
+        "name": "gnss_arrow_thickness_px"
+        "value": 3
+      -
+        "name": "gnss_size_scale"
+        "value": 1.0
+      -
+        "name": "robot_arrow_color"
+        "value": [255, 0, 0]
+      -
+        "name": "gnss_arrow_color"
+        "value": [127, 127, 255]
+      -
+        "name": "gnss_cov_color"
+        "value": [0, 0, 255]
+      -
+        "name": "gnss_cov_alpha"
+        "value": 0.25
+      -
         "name": "crop_radius_px"
         "value": 256
       -
