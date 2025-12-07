@@ -59,7 +59,7 @@ public:
     gnss_arrow_length_px_ = declare_parameter<int>("gnss_arrow_length_px", 8);
     gnss_arrow_thickness_px_ = declare_parameter<int>("gnss_arrow_thickness_px", 3);
     point_size_px_ = declare_parameter<int>("point_size_px", 3);
-    people_radius_m_ = declare_parameter<double>("people_radius_m", 0.5);
+    people_radius_px_ = declare_parameter<int>("people_radius_px", 8);
     people_alpha_ = declare_parameter<double>("people_alpha", 0.7);
     crop_radius_px_ = declare_parameter<int>("crop_radius_px", 256);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
@@ -406,8 +406,7 @@ private:
 
     const double fill_alpha = people_alpha_;
     const cv::Scalar fill_color = people_color_;
-    int radius_px = std::max(
-      1, static_cast<int>(std::round(people_radius_m_ / map_msg_->info.resolution)));
+    int radius_px = std::max(1, people_radius_px_);
     for (const auto & person : people->people) {
       auto world = transformPoint({person.position.x, person.position.y}, transform);
       auto pixel = worldToPixel(world.first, world.second);
@@ -478,7 +477,7 @@ private:
   int gnss_arrow_thickness_px_;
   int gnss_arrow_length_px_;
   int point_size_px_;
-  double people_radius_m_;
+  int people_radius_px_;
   double people_alpha_;
   int crop_radius_px_;
   int occupied_threshold_;
