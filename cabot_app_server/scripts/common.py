@@ -84,6 +84,7 @@ last_camera_left_orientation: Quaternion = None
 last_camera_right_image: CompressedImage = None
 last_camera_right_orientation: Quaternion = None
 last_location: PoseLog2 = None
+last_rosmap_image: CompressedImage = None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -676,6 +677,8 @@ class CabotNode_Sub(Node):
         self.rs2_image_sub = self.create_subscription(CompressedImage, '/rs2/color/image_raw/compressed', self.camera_right_image_callback, 10)
         self.rs3_image_sub = self.create_subscription(CompressedImage, '/rs3/color/image_raw/compressed', self.camera_left_image_callback, 10)
         self.location_sub = self.create_subscription(PoseLog2, '/cabot/pose_log2', self.location_callback, 10)
+        self.rosmap_image_sub = self.create_subscription(CompressedImage, '/rosmap_image/compressed', self.rosmap_image_callback, 10)
+
 
     def diagnostic_agg_callback(self, msg):
         global diagnostics
@@ -737,6 +740,10 @@ class CabotNode_Sub(Node):
             last_camera_right_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
         except:  # noqa: E722
             pass
+
+    def rosmap_image_callback(self, msg):
+        global last_rosmap_image
+        last_rosmap_image = msg
 
     def location_callback(self, msg):
         global last_location

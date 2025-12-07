@@ -32,6 +32,11 @@ FROM ${FROM_IMAGE} AS build
 
 RUN apt update && \
 	apt install -q -y --no-install-recommends \
+    ros-${ROS_DISTRO}-cv-bridge \
+    ros-${ROS_DISTRO}-tf2-ros \
+    ros-${ROS_DISTRO}-nav-msgs \
+    ros-${ROS_DISTRO}-sensor-msgs \
+    ros-${ROS_DISTRO}-geometry-msgs \
 	gosu \
 	&& \
 	apt clean && \
@@ -153,6 +158,12 @@ RUN apt update && \
 	ros-humble-rmw-cyclonedds-cpp \
 	ros-humble-diagnostic-updater \
 	ros-humble-tf-transformations \
+	ros-${ROS_DISTRO}-compressed-image-transport \
+    ros-${ROS_DISTRO}-cv-bridge \
+    ros-${ROS_DISTRO}-tf2-ros \
+    ros-${ROS_DISTRO}-nav-msgs \
+    ros-${ROS_DISTRO}-sensor-msgs \
+    ros-${ROS_DISTRO}-geometry-msgs \
 	&& \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*

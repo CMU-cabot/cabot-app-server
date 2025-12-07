@@ -95,6 +95,9 @@ class WebUI:
 
         @app.route('/custom_image/')
         def custom_image():
+            if common.last_rosmap_image:
+                image_data = self._get_camera_image(common.last_rosmap_image)
+                return jsonify({'image': image_data})
             return jsonify(self.last_image)
 
         # Socket.IO Wrappers
