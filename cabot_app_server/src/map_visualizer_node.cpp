@@ -41,7 +41,7 @@ public:
   {
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
-    arrow_m_ = declare_parameter<double>("arrow_m", 1.0);
+    arrow_length_px_ = declare_parameter<int>("arrow_length_px", 32);
     crop_radius_px_ = declare_parameter<int>("crop_radius_px", 512);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
     publish_rate_hz_ = declare_parameter<double>("publish_rate_hz", 1.0);
@@ -95,6 +95,7 @@ private:
     double yaw = quaternionYaw(info.origin.orientation);
     origin_cos_ = std::cos(yaw);
     origin_sin_ = std::sin(yaw);
+    map_resolution_ = info.resolution;
 
     RCLCPP_INFO(
       get_logger(), "Received map %u x %u, res=%.3f m/px",
@@ -216,12 +217,13 @@ private:
     const auto [robot_world, robot_yaw] = transformToPose(transform);
     auto robot_pixel = worldToPixel(robot_world.first, robot_world.second);
     if (robot_pixel) {
-      double head_x = robot_world.first + arrow_m_ * std::cos(robot_yaw);
-      double head_y = robot_world.second + arrow_m_ * std::sin(robot_yaw);
+      double arrow_length_m = map_resolution_ > 0.0 ? arrow_length_px_ * map_resolution_ : 0.0;
+      double head_x = robot_world.first + arrow_length_m * std::cos(robot_yaw);
+      double head_y = robot_world.second + arrow_length_m * std::sin(robot_yaw);
       auto arrow_tip = worldToPixel(head_x, head_y);
       if (arrow_tip) {
         cv::arrowedLine(
-          overlay, *robot_pixel, *arrow_tip, color, 5, cv::LINE_8, 0, arrow_m_ * 0.5);
+          overlay, *robot_pixel, *arrow_tip, color, 5, cv::LINE_8, 0, 0.5);
       }
     }
     return robot_pixel;
@@ -364,7 +366,7 @@ private:
   std::string map_frame_;
   std::string base_frame_;
   double range_ring_m_;
-  double arrow_m_;
+  int arrow_length_px_;
   int crop_radius_px_;
   int occupied_threshold_;
   double publish_rate_hz_;
@@ -377,6 +379,7 @@ private:
   cv::Mat map_image_;
   double origin_cos_{1.0};
   double origin_sin_{0.0};
+  double map_resolution_{0.0};
   std::optional<rclcpp::Time> last_publish_time_;
 
   // ROS interfaces
