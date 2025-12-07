@@ -41,8 +41,8 @@ public:
   {
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
-    arrow_length_px_ = declare_parameter<int>("arrow_length_px", 32);
-    crop_radius_px_ = declare_parameter<int>("crop_radius_px", 512);
+    arrow_length_px_ = declare_parameter<int>("arrow_length_px", 24);
+    crop_radius_px_ = declare_parameter<int>("crop_radius_px", 256);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
     publish_rate_hz_ = declare_parameter<double>("publish_rate_hz", 1.0);
     if (publish_rate_hz_ > 0.0) {

@@ -15,11 +15,11 @@ launch:
         "name": "base_frame"
         "value": "base_footprint"
       -
-        "name": "arrow_m"
-        "value": 1.5
+        "name": "arrow_length_px"
+        "value": 24
       -
-        "name": "crop_radius_m"
-        "value": 15.0
+        "name": "crop_radius_px"
+        "value": 256
       -
         "name": "occupied_threshold"
         "value": 50
