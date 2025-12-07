@@ -21,11 +21,11 @@ launch:
         "name": "arrow_thickness_px"
         "value": 5
       -
+        "name": "gnss_arrow_length_px"
+        "value": 8
+      -
         "name": "gnss_arrow_thickness_px"
         "value": 3
-      -
-        "name": "gnss_size_scale"
-        "value": 1.0
       -
         "name": "robot_arrow_color"
         "value": [255, 0, 0]

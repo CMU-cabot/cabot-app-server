@@ -56,8 +56,8 @@ public:
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
     arrow_length_px_ = declare_parameter<int>("arrow_length_px", 16);
     arrow_thickness_px_ = declare_parameter<int>("arrow_thickness_px", 5);
+    gnss_arrow_length_px_ = declare_parameter<int>("gnss_arrow_length_px", 8);
     gnss_arrow_thickness_px_ = declare_parameter<int>("gnss_arrow_thickness_px", 3);
-    gnss_size_scale_ = declare_parameter<double>("gnss_size_scale", 1.0);
     crop_radius_px_ = declare_parameter<int>("crop_radius_px", 256);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
     robot_arrow_color_ = colorParamToScalar(
@@ -434,7 +434,7 @@ private:
 
     double yaw = quaternionYaw(pose_in_map.pose.orientation);
     if (map_resolution_ > 0.0) {
-      double arrow_length_m = arrow_length_px_ * map_resolution_ * gnss_size_scale_;
+      double arrow_length_m = gnss_arrow_length_px_ * map_resolution_;
       double head_x = pose_in_map.pose.position.x + arrow_length_m * std::cos(yaw);
       double head_y = pose_in_map.pose.position.y + arrow_length_m * std::sin(yaw);
       auto tip = worldToPixel(head_x, head_y);
@@ -447,8 +447,8 @@ private:
 
     if (map_resolution_ > 0.0) {
       const auto & cov = gnss->pose.covariance;
-      double radius_m_fixed = 0.5 * gnss_size_scale_;
-      double radius_m_cov = std::max(std::sqrt(cov[0]), std::sqrt(cov[7])) * 2.0 * gnss_size_scale_;
+      double radius_m_fixed = 0.5;
+      double radius_m_cov = std::max(std::sqrt(cov[0]), std::sqrt(cov[7])) * 2.0;
       int radius_px_fixed = std::max(1, static_cast<int>(std::round(radius_m_fixed / map_resolution_)));
       int radius_px_cov = std::max(1, static_cast<int>(std::round(radius_m_cov / map_resolution_)));
       drawFilledCircleAlpha(overlay, *center, radius_px_fixed, gnss_cov_color_, gnss_cov_alpha_);
@@ -463,7 +463,7 @@ private:
   int arrow_length_px_;
   int arrow_thickness_px_;
   int gnss_arrow_thickness_px_;
-  double gnss_size_scale_;
+  int gnss_arrow_length_px_;
   int crop_radius_px_;
   int occupied_threshold_;
   cv::Scalar robot_arrow_color_;
