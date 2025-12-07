@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <cv_bridge/cv_bridge.h>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav_msgs/msg/path.hpp>
@@ -65,6 +66,8 @@ public:
 
     people_sub_ = create_subscription<people_msgs::msg::People>(
       "/people", 10, std::bind(&MapVisualizer::peopleCallback, this, std::placeholders::_1));
+    gnss_sub_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+      "/gnss_fix_local", 10, std::bind(&MapVisualizer::gnssCallback, this, std::placeholders::_1));
 
     image_pub_ = image_transport::create_publisher(this, "/rosmap_image");
 
@@ -119,6 +122,7 @@ private:
     cv::Mat overlay = map_image_.clone();
     drawPeople(overlay, cv::Scalar(255, 0, 0), 0.7);
     drawPointCloud2(overlay, msg, cv::Scalar(255, 0, 255));
+    drawGnss(overlay, cv::Scalar(255, 127, 127), cv::Scalar(255, 0, 0), 0.25);
     auto robot_pixel = drawRobot(overlay, cv::Scalar(0, 0, 255));
     drawPath(overlay);
 
@@ -201,6 +205,30 @@ private:
   void peopleCallback(const people_msgs::msg::People::SharedPtr msg)
   {
     people_msg_ = msg;
+  }
+
+  void gnssCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
+  {
+    gnss_msg_ = msg;
+  }
+
+  void drawFilledCircleAlpha(
+    cv::Mat & overlay, const cv::Point & center, int radius_px, cv::Scalar color, double alpha)
+  {
+    if (radius_px <= 0) {
+      return;
+    }
+    int x0 = std::max(center.x - radius_px, 0);
+    int y0 = std::max(center.y - radius_px, 0);
+    int x1 = std::min(center.x + radius_px, overlay.cols - 1);
+    int y1 = std::min(center.y + radius_px, overlay.rows - 1);
+    cv::Rect roi(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+
+    cv::Mat roi_view = overlay(roi);
+    cv::Mat filled_roi = roi_view.clone();
+    cv::Point local_center(center.x - roi.x, center.y - roi.y);
+    cv::circle(filled_roi, local_center, radius_px, color, cv::FILLED);
+    cv::addWeighted(filled_roi, alpha, roi_view, 1.0 - alpha, 0.0, roi_view);
   }
 
   std::optional<cv::Point> drawRobot(cv::Mat & overlay, cv::Scalar color) {
@@ -347,18 +375,57 @@ private:
       auto world = transformPoint({person.position.x, person.position.y}, transform);
       auto pixel = worldToPixel(world.first, world.second);
       if (pixel) {
-        int x0 = std::max(pixel->x - radius_px, 0);
-        int y0 = std::max(pixel->y - radius_px, 0);
-        int x1 = std::min(pixel->x + radius_px, overlay.cols - 1);
-        int y1 = std::min(pixel->y + radius_px, overlay.rows - 1);
-        cv::Rect roi(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
-
-        cv::Mat roi_view = overlay(roi);
-        cv::Mat filled_roi = roi_view.clone();
-        cv::Point local_center(pixel->x - roi.x, pixel->y - roi.y);
-        cv::circle(filled_roi, local_center, radius_px, fill_color, cv::FILLED);
-        cv::addWeighted(filled_roi, fill_alpha, roi_view, 1.0 - fill_alpha, 0.0, roi_view);
+        drawFilledCircleAlpha(overlay, *pixel, radius_px, fill_color, fill_alpha);
       }
+    }
+  }
+
+  void drawGnss(cv::Mat & overlay, cv::Scalar arrow_color, cv::Scalar cov_color, double cov_alpha)
+  {
+    auto gnss = gnss_msg_;
+    if (!gnss || !map_msg_) {
+      return;
+    }
+
+    geometry_msgs::msg::PoseStamped pose_in_map;
+    pose_in_map.header = gnss->header;
+    pose_in_map.pose = gnss->pose.pose;
+
+    const auto & gnss_frame = gnss->header.frame_id.empty() ? map_frame_ : gnss->header.frame_id;
+    if (gnss_frame != map_frame_) {
+      try {
+        auto transform = tf_buffer_.lookupTransform(
+          map_frame_, gnss_frame, gnss->header.stamp, rclcpp::Duration::from_seconds(0.1));
+        tf2::doTransform(pose_in_map, pose_in_map, transform);
+      } catch (const tf2::TransformException & ex) {
+        RCLCPP_DEBUG(get_logger(), "TF lookup for GNSS failed: %s", ex.what());
+        return;
+      }
+    }
+
+    auto center = worldToPixel(pose_in_map.pose.position.x, pose_in_map.pose.position.y);
+    if (!center) {
+      return;
+    }
+
+    double yaw = quaternionYaw(pose_in_map.pose.orientation);
+    if (map_resolution_ > 0.0) {
+      double arrow_length_m = arrow_length_px_ * map_resolution_;
+      double head_x = pose_in_map.pose.position.x + arrow_length_m * std::cos(yaw);
+      double head_y = pose_in_map.pose.position.y + arrow_length_m * std::sin(yaw);
+      auto tip = worldToPixel(head_x, head_y);
+      if (tip) {
+        cv::arrowedLine(overlay, *center, *tip, arrow_color, 3, cv::LINE_8, 0, 0.5);
+      }
+    }
+
+    if (map_resolution_ > 0.0) {
+      const auto & cov = gnss->pose.covariance;
+      double radius_m_cov = std::max(std::sqrt(cov[0]), std::sqrt(cov[7])) * 2.0;
+      int radius_px_fixed = 10;
+      int radius_px_cov = radius_m_cov * radius_m_cov;
+      drawFilledCircleAlpha(overlay, *center, radius_px_fixed, cov_color, cov_alpha);
+      drawFilledCircleAlpha(overlay, *center, radius_px_cov, cov_color, cov_alpha);
     }
   }
 
@@ -376,6 +443,7 @@ private:
   nav_msgs::msg::OccupancyGrid::SharedPtr map_msg_;
   nav_msgs::msg::Path::SharedPtr path_msg_;
   people_msgs::msg::People::SharedPtr people_msg_;
+  geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr gnss_msg_;
   cv::Mat map_image_;
   double origin_cos_{1.0};
   double origin_sin_{0.0};
@@ -389,6 +457,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
   rclcpp::Subscription<people_msgs::msg::People>::SharedPtr people_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr gnss_sub_;
   image_transport::Publisher image_pub_;
 };
 
