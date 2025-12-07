@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <optional>
@@ -30,6 +31,17 @@ double quaternionYaw(const geometry_msgs::msg::Quaternion & q)
 {
   return tf2::getYaw(q);
 }
+
+cv::Scalar colorParamToScalar(const std::vector<int> & rgb, const cv::Scalar & fallback)
+{
+  if (rgb.size() != 3) {
+    return fallback;
+  }
+  auto clamp = [](int v) {
+    return std::clamp(v, 0, 255);
+  };
+  return cv::Scalar(clamp(rgb[2]), clamp(rgb[1]), clamp(rgb[0]));
+}
 }  // namespace
 
 class MapVisualizer : public rclcpp::Node
@@ -43,8 +55,19 @@ public:
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
     arrow_length_px_ = declare_parameter<int>("arrow_length_px", 16);
+    arrow_thickness_px_ = declare_parameter<int>("arrow_thickness_px", 5);
+    gnss_arrow_thickness_px_ = declare_parameter<int>("gnss_arrow_thickness_px", 3);
+    gnss_size_scale_ = declare_parameter<double>("gnss_size_scale", 1.0);
     crop_radius_px_ = declare_parameter<int>("crop_radius_px", 256);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
+    robot_arrow_color_ = colorParamToScalar(
+      declare_parameter<std::vector<int>>("robot_arrow_color", {255, 0, 0}), cv::Scalar(0, 0, 255));
+    gnss_arrow_color_ = colorParamToScalar(
+      declare_parameter<std::vector<int>>("gnss_arrow_color", {127, 127, 255}),
+      cv::Scalar(255, 127, 127));
+    gnss_cov_color_ = colorParamToScalar(
+      declare_parameter<std::vector<int>>("gnss_cov_color", {0, 0, 255}), cv::Scalar(255, 0, 0));
+    gnss_cov_alpha_ = declare_parameter<double>("gnss_cov_alpha", 0.25);
     publish_rate_hz_ = declare_parameter<double>("publish_rate_hz", 1.0);
     if (publish_rate_hz_ > 0.0) {
       publish_period_ = rclcpp::Duration::from_seconds(1.0 / publish_rate_hz_);
@@ -122,8 +145,8 @@ private:
     cv::Mat overlay = map_image_.clone();
     drawPeople(overlay, cv::Scalar(255, 0, 0), 0.7);
     drawPointCloud2(overlay, msg, cv::Scalar(255, 0, 255));
-    drawGnss(overlay, cv::Scalar(255, 127, 127), cv::Scalar(255, 0, 0), 0.25);
-    auto robot_pixel = drawRobot(overlay, cv::Scalar(0, 0, 255));
+    drawGnss(overlay);
+    auto robot_pixel = drawRobot(overlay, robot_arrow_color_);
     drawPath(overlay);
 
     cv::Mat output = overlay;
@@ -251,7 +274,8 @@ private:
       auto arrow_tip = worldToPixel(head_x, head_y);
       if (arrow_tip) {
         cv::arrowedLine(
-          overlay, *robot_pixel, *arrow_tip, color, 3, cv::LINE_8, 0, 0.5);
+          overlay, *robot_pixel, *arrow_tip, color,
+          std::max(1, arrow_thickness_px_), cv::LINE_8, 0, 0.5);
       }
     }
     return robot_pixel;
@@ -380,7 +404,7 @@ private:
     }
   }
 
-  void drawGnss(cv::Mat & overlay, cv::Scalar arrow_color, cv::Scalar cov_color, double cov_alpha)
+  void drawGnss(cv::Mat & overlay)
   {
     auto gnss = gnss_msg_;
     if (!gnss || !map_msg_) {
@@ -410,22 +434,25 @@ private:
 
     double yaw = quaternionYaw(pose_in_map.pose.orientation);
     if (map_resolution_ > 0.0) {
-      double arrow_length_m = arrow_length_px_ * 0.5 * map_resolution_;
+      double arrow_length_m = arrow_length_px_ * map_resolution_ * gnss_size_scale_;
       double head_x = pose_in_map.pose.position.x + arrow_length_m * std::cos(yaw);
       double head_y = pose_in_map.pose.position.y + arrow_length_m * std::sin(yaw);
       auto tip = worldToPixel(head_x, head_y);
       if (tip) {
-        cv::arrowedLine(overlay, *center, *tip, arrow_color, 2, cv::LINE_8, 0, 0.5);
+        cv::arrowedLine(
+          overlay, *center, *tip, gnss_arrow_color_,
+          std::max(1, gnss_arrow_thickness_px_), cv::LINE_8, 0, 0.5);
       }
     }
 
     if (map_resolution_ > 0.0) {
       const auto & cov = gnss->pose.covariance;
-      double radius_m_cov = std::max(std::sqrt(cov[0]), std::sqrt(cov[7])) * 2.0;
-      int radius_px_fixed = 10;
-      int radius_px_cov = radius_m_cov * radius_m_cov;
-      drawFilledCircleAlpha(overlay, *center, radius_px_fixed, cov_color, cov_alpha);
-      drawFilledCircleAlpha(overlay, *center, radius_px_cov, cov_color, cov_alpha);
+      double radius_m_fixed = 0.5 * gnss_size_scale_;
+      double radius_m_cov = std::max(std::sqrt(cov[0]), std::sqrt(cov[7])) * 2.0 * gnss_size_scale_;
+      int radius_px_fixed = std::max(1, static_cast<int>(std::round(radius_m_fixed / map_resolution_)));
+      int radius_px_cov = std::max(1, static_cast<int>(std::round(radius_m_cov / map_resolution_)));
+      drawFilledCircleAlpha(overlay, *center, radius_px_fixed, gnss_cov_color_, gnss_cov_alpha_);
+      drawFilledCircleAlpha(overlay, *center, radius_px_cov, gnss_cov_color_, gnss_cov_alpha_);
     }
   }
 
@@ -434,8 +461,15 @@ private:
   std::string base_frame_;
   double range_ring_m_;
   int arrow_length_px_;
+  int arrow_thickness_px_;
+  int gnss_arrow_thickness_px_;
+  double gnss_size_scale_;
   int crop_radius_px_;
   int occupied_threshold_;
+  cv::Scalar robot_arrow_color_;
+  cv::Scalar gnss_arrow_color_;
+  cv::Scalar gnss_cov_color_;
+  double gnss_cov_alpha_;
   double publish_rate_hz_;
   std::optional<rclcpp::Duration> publish_period_;
 
