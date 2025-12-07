@@ -32,7 +32,8 @@ double quaternionYaw(const geometry_msgs::msg::Quaternion & q)
   return tf2::getYaw(q);
 }
 
-cv::Scalar colorParamToScalar(const std::vector<int> & rgb, const cv::Scalar & fallback)
+template<typename T>
+cv::Scalar colorParamToScalar(const std::vector<T> & rgb, const cv::Scalar & fallback)
 {
   if (rgb.size() != 3) {
     return fallback;
@@ -40,7 +41,10 @@ cv::Scalar colorParamToScalar(const std::vector<int> & rgb, const cv::Scalar & f
   auto clamp = [](int v) {
     return std::clamp(v, 0, 255);
   };
-  return cv::Scalar(clamp(rgb[2]), clamp(rgb[1]), clamp(rgb[0]));
+  return cv::Scalar(
+    clamp(static_cast<int>(rgb[2])),
+    clamp(static_cast<int>(rgb[1])),
+    clamp(static_cast<int>(rgb[0])));
 }
 }  // namespace
 
