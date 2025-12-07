@@ -42,7 +42,7 @@ public:
   {
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
-    arrow_length_px_ = declare_parameter<int>("arrow_length_px", 24);
+    arrow_length_px_ = declare_parameter<int>("arrow_length_px", 16);
     crop_radius_px_ = declare_parameter<int>("crop_radius_px", 256);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
     publish_rate_hz_ = declare_parameter<double>("publish_rate_hz", 1.0);
@@ -251,7 +251,7 @@ private:
       auto arrow_tip = worldToPixel(head_x, head_y);
       if (arrow_tip) {
         cv::arrowedLine(
-          overlay, *robot_pixel, *arrow_tip, color, 5, cv::LINE_8, 0, 0.5);
+          overlay, *robot_pixel, *arrow_tip, color, 3, cv::LINE_8, 0, 0.5);
       }
     }
     return robot_pixel;
@@ -410,12 +410,12 @@ private:
 
     double yaw = quaternionYaw(pose_in_map.pose.orientation);
     if (map_resolution_ > 0.0) {
-      double arrow_length_m = arrow_length_px_ * map_resolution_;
+      double arrow_length_m = arrow_length_px_ * 0.5 * map_resolution_;
       double head_x = pose_in_map.pose.position.x + arrow_length_m * std::cos(yaw);
       double head_y = pose_in_map.pose.position.y + arrow_length_m * std::sin(yaw);
       auto tip = worldToPixel(head_x, head_y);
       if (tip) {
-        cv::arrowedLine(overlay, *center, *tip, arrow_color, 3, cv::LINE_8, 0, 0.5);
+        cv::arrowedLine(overlay, *center, *tip, arrow_color, 2, cv::LINE_8, 0, 0.5);
       }
     }
 

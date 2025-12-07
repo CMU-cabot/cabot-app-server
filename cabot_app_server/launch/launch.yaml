@@ -16,7 +16,7 @@ launch:
         "value": "base_footprint"
       -
         "name": "arrow_length_px"
-        "value": 24
+        "value": 16
       -
         "name": "crop_radius_px"
         "value": 256
