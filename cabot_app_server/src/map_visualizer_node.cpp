@@ -61,6 +61,8 @@ public:
     point_size_px_ = declare_parameter<int>("point_size_px", 3);
     people_radius_px_ = declare_parameter<int>("people_radius_px", 8);
     people_alpha_ = declare_parameter<double>("people_alpha", 0.7);
+    gnss_fixed_radius_px_ = declare_parameter<int>("gnss_fixed_radius_px", 8);
+    gnss_cov_radius_scale_ = declare_parameter<double>("gnss_cov_radius_scale", 1.0);
     crop_radius_px_ = declare_parameter<int>("crop_radius_px", 256);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
     point_cloud_color_ = colorParamToScalar(
@@ -459,10 +461,10 @@ private:
 
     if (map_resolution_ > 0.0) {
       const auto & cov = gnss->pose.covariance;
-      double radius_m_fixed = 0.5;
+      int radius_px_fixed = std::max(1, gnss_fixed_radius_px_);
       double radius_m_cov = std::max(std::sqrt(cov[0]), std::sqrt(cov[7])) * 2.0;
-      int radius_px_fixed = std::max(1, static_cast<int>(std::round(radius_m_fixed / map_resolution_)));
-      int radius_px_cov = std::max(1, static_cast<int>(std::round(radius_m_cov / map_resolution_)));
+      int radius_px_cov = std::max(
+        1, static_cast<int>(std::round(radius_m_cov / map_resolution_ * gnss_cov_radius_scale_)));
       drawFilledCircleAlpha(overlay, *center, radius_px_fixed, gnss_cov_color_, gnss_cov_alpha_);
       drawFilledCircleAlpha(overlay, *center, radius_px_cov, gnss_cov_color_, gnss_cov_alpha_);
     }
@@ -479,6 +481,8 @@ private:
   int point_size_px_;
   int people_radius_px_;
   double people_alpha_;
+  int gnss_fixed_radius_px_{8};
+  double gnss_cov_radius_scale_{1.0};
   int crop_radius_px_;
   int occupied_threshold_;
   cv::Scalar point_cloud_color_;

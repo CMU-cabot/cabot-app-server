@@ -51,6 +51,12 @@ launch:
         "name": "gnss_cov_alpha"
         "value": 0.25
       -
+        "name": "gnss_fixed_radius_px"
+        "value": 8
+      -
+        "name": "gnss_cov_radius_scale"
+        "value": 1.0
+      -
         "name": "point_cloud_color"
         "value": [255, 0, 255]
       -
