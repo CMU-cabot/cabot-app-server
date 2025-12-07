@@ -100,8 +100,6 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
     }
 
     function topicInit(ros) {
-        let firstTime = true;
-
         // Create the main viewer.
         const viewer = new ROS3D.Viewer({
             divID : 'map',
@@ -264,7 +262,6 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
 
                 // set camera above the robot position
                 // y - 5 stabilize camera orientation
-                firstTime = false;
                 viewer.cameraControls.center.copy(robotPos);
                 viewer.camera.position.set(robotPos.x, robotPos.y - 5, 50);
             }
