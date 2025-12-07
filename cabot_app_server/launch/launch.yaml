@@ -15,20 +15,23 @@ launch:
         "name": "base_frame"
         "value": "base_footprint"
       -
+        "name": "scale"
+        "value": 3.0
+      -
         "name": "arrow_length_px"
         "value": 16
       -
         "name": "arrow_thickness_px"
-        "value": 5
+        "value": 4
       -
         "name": "gnss_arrow_length_px"
         "value": 8
       -
         "name": "gnss_arrow_thickness_px"
-        "value": 3
+        "value": 4
       -
         "name": "point_size_px"
-        "value": 3
+        "value": 4
       -
         "name": "people_radius_px"
         "value": 8
@@ -52,7 +55,7 @@ launch:
         "value": 0.25
       -
         "name": "gnss_fixed_radius_px"
-        "value": 8
+        "value": 4
       -
         "name": "gnss_cov_radius_scale"
         "value": 1.0
@@ -61,10 +64,10 @@ launch:
         "value": [255, 0, 255]
       -
         "name": "people_color"
-        "value": [255, 0, 0]
+        "value": [0, 0, 255]
       -
         "name": "path_color"
-        "value": [255, 0, 0]
+        "value": [0, 0, 255]
       -
         "name": "crop_radius_px"
         "value": 256

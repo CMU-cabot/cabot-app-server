@@ -60,22 +60,22 @@ public:
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
     arrow_length_px_ = declare_parameter<int>("arrow_length_px", 16);
-    arrow_thickness_px_ = declare_parameter<int>("arrow_thickness_px", 5);
+    arrow_thickness_px_ = declare_parameter<int>("arrow_thickness_px", 4);
     gnss_arrow_length_px_ = declare_parameter<int>("gnss_arrow_length_px", 8);
-    gnss_arrow_thickness_px_ = declare_parameter<int>("gnss_arrow_thickness_px", 3);
+    gnss_arrow_thickness_px_ = declare_parameter<int>("gnss_arrow_thickness_px", 2);
     point_size_px_ = declare_parameter<int>("point_size_px", 3);
     people_radius_px_ = declare_parameter<int>("people_radius_px", 8);
     people_alpha_ = declare_parameter<double>("people_alpha", 0.7);
-    gnss_fixed_radius_px_ = declare_parameter<int>("gnss_fixed_radius_px", 8);
+    gnss_fixed_radius_px_ = declare_parameter<int>("gnss_fixed_radius_px", 4);
     gnss_cov_radius_scale_ = declare_parameter<double>("gnss_cov_radius_scale", 1.0);
     crop_radius_px_ = declare_parameter<int>("crop_radius_px", 256);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
     point_cloud_color_ = colorParamToScalar(
       declare_parameter<std::vector<int>>("point_cloud_color", {255, 0, 255}), cv::Scalar(255, 0, 255));
     people_color_ = colorParamToScalar(
-      declare_parameter<std::vector<int>>("people_color", {255, 0, 0}), cv::Scalar(255, 0, 0));
+      declare_parameter<std::vector<int>>("people_color", {0, 0, 255}), cv::Scalar(255, 0, 0));
     path_color_ = colorParamToScalar(
-      declare_parameter<std::vector<int>>("path_color", {255, 0, 0}), cv::Scalar(255, 0, 0));
+      declare_parameter<std::vector<int>>("path_color", {0, 0, 255}), cv::Scalar(255, 0, 0));
     path_thickness_px_ = declare_parameter<int>("path_thickness_px", 1);
     robot_arrow_color_ = colorParamToScalar(
       declare_parameter<std::vector<int>>("robot_arrow_color", {255, 0, 0}), cv::Scalar(0, 0, 255));
