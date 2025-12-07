@@ -42,7 +42,7 @@ public:
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
     arrow_m_ = declare_parameter<double>("arrow_m", 1.0);
-    crop_radius_m_ = declare_parameter<double>("crop_radius_m", 15.0);
+    crop_radius_px_ = declare_parameter<int>("crop_radius_px", 512);
     occupied_threshold_ = declare_parameter<int>("occupied_threshold", 50);
     publish_rate_hz_ = declare_parameter<double>("publish_rate_hz", 1.0);
     if (publish_rate_hz_ > 0.0) {
@@ -122,8 +122,8 @@ private:
     drawPath(overlay);
 
     cv::Mat output = overlay;
-    if (robot_pixel && crop_radius_m_ > 0.0) {
-      int radius_px = std::max(1, static_cast<int>(crop_radius_m_ / map_msg_->info.resolution));
+    if (robot_pixel && crop_radius_px_ > 0) {
+      int radius_px = std::max(1, crop_radius_px_);
       int crop_size = radius_px * 2 + 1;
       cv::Mat padded(
         crop_size, crop_size, overlay.type(), cv::Scalar(120, 120, 120));
@@ -365,7 +365,7 @@ private:
   std::string base_frame_;
   double range_ring_m_;
   double arrow_m_;
-  double crop_radius_m_;
+  int crop_radius_px_;
   int occupied_threshold_;
   double publish_rate_hz_;
   std::optional<rclcpp::Duration> publish_period_;
