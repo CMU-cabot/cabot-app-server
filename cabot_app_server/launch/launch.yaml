@@ -15,17 +15,68 @@ launch:
         "name": "base_frame"
         "value": "base_footprint"
       -
-        "name": "range_ring_m"
-        "value": 0.2
+        "name": "scale"
+        "value": 3.0
       -
-        "name": "arrow_m"
+        "name": "arrow_length_px"
+        "value": 16
+      -
+        "name": "arrow_thickness_px"
+        "value": 4
+      -
+        "name": "gnss_arrow_length_px"
+        "value": 8
+      -
+        "name": "gnss_arrow_thickness_px"
+        "value": 4
+      -
+        "name": "point_size_px"
+        "value": 4
+      -
+        "name": "people_radius_px"
+        "value": 8
+      -
+        "name": "people_alpha"
         "value": 0.7
       -
-        "name": "crop_radius_m"
-        "value": 15.0
+        "name": "path_thickness_px"
+        "value": 1
+      -
+        "name": "robot_arrow_color"
+        "value": [255, 0, 0]
+      -
+        "name": "gnss_arrow_color"
+        "value": [127, 127, 255]
+      -
+        "name": "gnss_cov_color"
+        "value": [0, 0, 255]
+      -
+        "name": "gnss_cov_alpha"
+        "value": 0.25
+      -
+        "name": "gnss_fixed_radius_px"
+        "value": 4
+      -
+        "name": "gnss_cov_radius_scale"
+        "value": 1.0
+      -
+        "name": "point_cloud_color"
+        "value": [255, 0, 255]
+      -
+        "name": "people_color"
+        "value": [0, 0, 255]
+      -
+        "name": "path_color"
+        "value": [0, 0, 255]
+      -
+        "name": "crop_radius_px"
+        "value": 256
       -
         "name": "occupied_threshold"
         "value": 50
       -
         "name": "publish_rate_hz"
         "value": 1.0
+      -
+        "name": "rosmap_image.format"
+        "value": "png"
