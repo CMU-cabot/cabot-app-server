@@ -130,15 +130,26 @@ class WebUI:
         m = re.search(r" (.*) compressed", msg.format)
         return f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}"
 
-    def _track_event(self, event, payload, emit=False):
-        if isinstance(payload, list) and len(payload) == 1:
-            payload = payload[0]
+    def append_history(self, key, value):
+        history = self.last_data[key]
+        history.append(value)
+        self.last_data[key] = history[-10:]
+
+    def _track_event(self, event, data, emit=False):
+        if isinstance(data, list) and len(data) == 1:
+            data = data[0]
+        try:
+            data = json.loads(data)
+        except Exception:
+            pass
+
+        if event == 'navigate' and data.get('type') == 'arrived':
+            self.last_data['destination'].append('__arrived__')
 
         if event == 'share':
-            if not isinstance(payload, str):
-                common.logger.info(f"Unexpected share data {payload}")
+            if not isinstance(data, dict):
+                common.logger.info(f"Unexpected share data {data}")
                 return
-            data = json.loads(payload)
             event_type = f"share.{data.get('type')}"
             # if not event_type.startswith('share.Speak'):
             #     common.logger.info(f"DEBUG {event_type} {payload}")
@@ -175,22 +186,14 @@ class WebUI:
             return
 
         if event in self.SIMPLE_LAST_EVENTS:
-            try:
-                payload = json.loads(payload)
-            except Exception:
-                pass
-            self.last_data[event] = [payload]
+            self.last_data[event] = [data]
             return
 
         if event in self.SIMPLE_HISTORY_EVENTS:
-            try:
-                payload = json.loads(payload)
-            except Exception:
-                pass
             lst = self.last_data[event]
-            lst.append(payload)
+            lst.append(data)
             self.last_data[event] = lst[-10:]
             return
 
         if event not in self.IGNORE_EVENTS:
-            common.logger.info(f"[IGNORE handle_event] event={event}, data={payload}")
+            common.logger.info(f"[IGNORE handle_event] event={event}, data={data}")

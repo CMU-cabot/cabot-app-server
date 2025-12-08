@@ -168,22 +168,23 @@ function renderCurrentDestinations(data) {
     const tour = data['share.Tour']?.at(-1);
     let skip = true;
     if (tour) {
-        let count = tour.currentDestination ? 1 : 0 + (tour.destinations ?? []).length;
-        if (count > 0) {
-            html += `<button onclick="clear_destinations(${count})">ナビゲーションを中止</button>`;
-        }
         if (tour.currentDestination) {
             const name = destination_name(tour.currentDestination);
-            html += `<div>${name}</div><button onclick="skip('${tour.currentDestination}')">${name}をスキップ</button><hr>`;
+            html += `<div>${name} <button onclick="skip('${tour.currentDestination}')">スキップ</button></div>`;
             skip = false;
         }
         for (const destination of tour.destinations ?? []) {
             const name = destination_name(destination);
-            html += `<div>${name}</div>`;
+            html += `<div>${name}`;
             if (skip) {
-                html += `<button onclick="skip('${destination}')">${name}をスキップ</button>`;
+                html += ` <button onclick="skip('${destination}')">スキップ</button>`;
                 skip = false;
             }
+            html += '</div>';
+        }
+        let count = tour.currentDestination ? 1 : 0 + (tour.destinations ?? []).length;
+        if (count > 0) {
+            html += `<button onclick="clear_destinations(${count})" style="margin-top:1em">ナビゲーションを中止</button>`;
         }
     }
     return html;
@@ -201,6 +202,28 @@ function renderChatHistories(data) {
     let html = '';
     for (const item of data['share.ChatStatus'] ?? []) {
         html += `<div class="bubble ${item.user.toLowerCase()}">${item.text}</div>`;
+    }
+    return html;
+}
+
+function renderDestinationHistories(data) {
+    let html = "";
+    const arr = data['destination'] ?? [];
+    const destinations = arr.filter((v, i) => v !== arr[i - 1]);
+    for (const destination of destinations) {
+        let name
+        switch (destination) {
+            case '__arrived__':
+                name = '到着済み';
+                break;
+            case '__cancel__':
+                name = 'キャンセル済み';
+                break;
+            default:
+                name = destination_name(destination);
+                break;
+        }
+        html += `<div>${name}</div>`;
     }
     return html;
 }
@@ -306,6 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 replaceHTML('speak_histories', renderSpeakHistories(data));
                 replaceHTML('chat_histories', renderChatHistories(data));
+                replaceHTML('navigation_histories', renderDestinationHistories(data));
                 replaceHTML('current_destinations', renderCurrentDestinations(data));
                 replaceText('cabot_name', data['cabot_name']?.at(-1) ?? '未接続');
                 replaceText('touch_state', get_touch_state(data));
