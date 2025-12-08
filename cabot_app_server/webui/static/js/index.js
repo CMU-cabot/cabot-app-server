@@ -4,6 +4,10 @@ let tour_names = {};
 let last_data = {};
 let __debug__ = {};
 let current_lang = '';
+let current_handleside = '';
+let cuurrent_touchmode = '';
+let current_voicerate = '';
+let cuurrent_chatvisible = '';
 let add_destination_dialog;
 let generic_confirm_dialog;
 
@@ -292,6 +296,65 @@ function replaceText(id, text) {
     }
 }
 
+function set_highlight(language_changed, voicerate_changed, handleside_changed, touchmode_changed, chatvisible_changed) {
+    if (language_changed != undefined) {
+        document.querySelectorAll('[data-language]').forEach(el => {
+            if (el.dataset.language === language_changed) {
+                el.classList.add('selected');
+            } else {
+                el.classList.remove('selected');
+            }
+        });
+    }
+    if (handleside_changed != undefined) {
+        document.querySelectorAll('[data-handleside]').forEach(el => {
+            if (el.dataset.handleside === handleside_changed) {
+                el.classList.add('selected');
+            } else {
+                el.classList.remove('selected');
+            }
+        });
+    }
+    if (touchmode_changed != undefined) {
+        document.querySelectorAll('[data-touchmode]').forEach(el => {
+            if (el.dataset.touchmode === touchmode_changed) {
+                el.classList.add('selected');
+            } else {
+                el.classList.remove('selected');
+            }
+        });
+    }
+    if (chatvisible_changed != undefined) {
+        document.querySelectorAll('[data-chatvisible]').forEach(el => {
+            if (el.dataset.chatvisible === chatvisible_changed) {
+                el.classList.add('selected');
+            } else {
+                el.classList.remove('selected');
+            }
+        });
+    }
+    if (voicerate_changed != undefined) {
+        if (voicerate_changed < (0.2 + 0.35) / 2) {
+            voicerate_changed = 'very-slow';
+        } else if (voicerate_changed < (0.35 + 0.5) / 2) {
+            voicerate_changed = 'slow';
+        } else if (voicerate_changed < (0.5 + 0.65) / 2) {
+            voicerate_changed = 'normal';
+        } else if (voicerate_changed < (0.65 + 0.8) / 2) {
+            voicerate_changed = 'fast';
+        } else {
+            voicerate_changed = 'very-fast';
+        }
+        document.querySelectorAll('[data-voicerate]').forEach(el => {
+            if (el.dataset.voicerate === voicerate_changed) {
+                el.classList.add('selected');
+            } else {
+                el.classList.remove('selected');
+            }
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -320,9 +383,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (lang == 'zh-Hans') {
                     lang = 'zh-CN';
                 }
+                let language_changed, voicerate_changed, handleside_changed, touchmode_changed, chatvisible_changed;
                 if (lang && lang != current_lang) {
                     console.log(`Switch to ${lang}`);
                     current_lang = lang;
+                    language_changed = lang
                     build_index();
                     replaceHTML('destinations', renderSections(directory_data.sections[current_lang]));
                     replaceHTML('tours', renderTours(directory_data.tours));
@@ -334,6 +399,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 replaceText('cabot_name', data['cabot_name']?.at(-1) ?? '未接続');
                 replaceText('touch_state', get_touch_state(data));
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
+                let voicerate = data['share.ChangeUserVoiceRate']?.at(-1);
+                if (voicerate && voicerate != current_voicerate) {
+                    current_voicerate = voicerate;
+                    voicerate_changed = voicerate;
+                }
+                let handleside = data['share.ChangeHandleSide']?.at(-1);
+                if (handleside && handleside != current_handleside) {
+                    current_handleside = handleside;
+                    handleside_changed = handleside;
+                }
+                let touchmode = data['share.ChangeTouchMode']?.at(-1);
+                if (touchmode && touchmode != cuurrent_touchmode) {
+                    cuurrent_touchmode = touchmode;
+                    touchmode_changed = touchmode;
+                }
+                let chatvisible = String(data['share.ChatStatus.visible']?.at(-1) ?? false);
+                if (chatvisible != cuurrent_chatvisible) {
+                    cuurrent_chatvisible = chatvisible;
+                    chatvisible_changed = chatvisible;
+                }
+                set_highlight(language_changed, voicerate_changed, handleside_changed, touchmode_changed, chatvisible_changed);
             })
             .catch(error => console.error('Error:', error));
     }, 1000);

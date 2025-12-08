@@ -87,7 +87,7 @@ fieldset.collapsed {
 
 .user {
   align-self: flex-end;
-  background: #00f;
+  background: #0078ff;
   color: #fff;
   border-radius: 12px 12px 0 12px;
 }
@@ -104,4 +104,17 @@ div.separator {
 
 div.separator2 {
   margin-bottom: 12px;
+}
+
+button {
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #f2f2f2;
+  cursor: pointer;
+}
+
+button.selected {
+  background: #0078ff;
+  color: #fff;
+  border-color: #0060d1;
 }

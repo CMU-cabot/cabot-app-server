@@ -164,7 +164,9 @@ class WebUI:
 
             if event_type == 'share.ChatStatus':
                 if isinstance(value, str):
-                    messages = json.loads(value).get('messages')
+                    value = json.loads(value)
+                    self.last_data[f'{event_type}.visible'] = [value.get('visible', False)]
+                    messages = value.get('messages')
                     if messages:
                         existing = self.last_data[event_type]
                         for msg in messages:
