@@ -205,6 +205,32 @@ function renderChatHistories(data) {
     return html;
 }
 
+function get_touch_state(data) {
+    let result = '';
+    for (const touch of data['touch'] ?? []) {
+        let touch_state;
+        switch (touch.level) {
+            case -1:
+                touch_state = '未接続';
+                break;
+            case 0:
+                touch_state = 'OFF';
+                break;
+            case 1:
+                touch_state = 'ON';
+                break;
+            default:
+                return `予期せぬデータ：${JSON.stringify(touch)}`;
+                break;
+        }
+        if (result && result != touch_state) {
+            return '判定中';
+        }
+        result = touch_state;
+    }
+    return result || '判定中';
+}
+
 function build_index() {
     node_names = {};
     for (const feature of directory_data.features) {
@@ -236,7 +262,17 @@ function replaceHTML(id, html) {
     }
 }
 
+function replaceText(id, text) {
+    const element = document.getElementById(id);
+    if (element && element.textContent != text) {
+        element.textContent = text;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    document.getElementById('debug-info').style.display = urlParams.get('debug') == 'true' ? 'block' : 'none';
 
     add_destination_dialog = document.getElementById('add_destination_dialog');
     add_destination_dialog.addEventListener('close', add_destination_close);
@@ -271,6 +307,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 replaceHTML('speak_histories', renderSpeakHistories(data));
                 replaceHTML('chat_histories', renderChatHistories(data));
                 replaceHTML('current_destinations', renderCurrentDestinations(data));
+                replaceText('cabot_name', data['cabot_name']?.at(-1) ?? '未接続');
+                replaceText('touch_state', get_touch_state(data));
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
             })
             .catch(error => console.error('Error:', error));

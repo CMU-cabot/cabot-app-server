@@ -18,12 +18,12 @@ class WebUI:
         'device_status',
         'system_status',
         'battery_status',
+        'location',
     }
 
     SIMPLE_HISTORY_EVENTS = {
         'touch',
         'destination',
-        'location',
         'manage_cabot',
         'navigate',
         'speak',

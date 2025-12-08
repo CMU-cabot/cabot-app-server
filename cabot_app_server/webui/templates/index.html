@@ -10,90 +10,109 @@
 </head>
 
 <body>
-    <fieldset>
-        <legend>言語</legend>
-        <button onclick="share({type: 'ChangeLanguage', value: 'ja'})">日本語</button>
-        <button onclick="share({type: 'ChangeLanguage', value: 'en'})">英語</button>
-        <button onclick="share({type: 'ChangeLanguage', value: 'zh-Hans'})">中国語</button>
-    </fieldset>
-    <fieldset>
-        <legend>ハンドル</legend>
-        <button onclick="share({type: 'ChangeHandleSide', value: 'left'})">左手持ち</button>
-        <button onclick="share({type: 'ChangeHandleSide', value: 'right'})">右手持ち</button>
-    </fieldset>
-    <fieldset>
-        <legend>タッチモード</legend>
-        <button onclick="share({type: 'ChangeTouchMode', value: 'cap'})">静電容量</button>
-        <button onclick="share({type: 'ChangeTouchMode', value: 'tof'})">距離センサー(ToF)</button>
-        <button onclick="share({type: 'ChangeTouchMode', value: 'dual'})">両方</button>
-    </fieldset>
-    <fieldset>
-        <legend>テキスト読み上げ</legend>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.2'})">とても遅い</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.35'})">遅い</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.5'})">普通</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.65'})">速い</button>
-        <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">とても速い</button>
-        <hr>
-        <input type="text" id="speak_text" value="こんにちは、お元気ですか？" size="50" />
-        <button onclick="speak_text()">読み上げ</button>
-    </fieldset>
-    <fieldset>
-        <legend>対話</legend>
-        <button onclick="share({type: 'ChatRequest', value: 'open'})">対話開始</button>
-        <button onclick="share({type: 'ChatRequest', value: 'close'})">対話終了</button>
-    </fieldset>
-    <fieldset>
-        <legend>ハンドル操作</legend>
-        <button onclick="manage('resume')">再開</button>
-        <button onclick="manage('speedup')">速度を上げる</button>
-        <button onclick="manage('speeddown')">速度を下げる</button>
-        <button onclick="manage('pause')">一時停止</button>
-        <button onclick="manage('idle')">自動走行を停止</button>
-    </fieldset>
-    <fieldset>
-        <legend>アクション</legend>
-        <button onclick="generic_confirm('スーツケースとの接続が解除されます', 'リブート', 'キャンセル', 'manage', 'reboot')">リブート</button>
-        <button onclick="generic_confirm('スーツケースのシステム起動を実行します', 'システム起動', 'キャンセル', 'manage', 'start')">システム起動</button>
-        <button onclick="generic_confirm('スーツケースのシステム停止しますが、よろしいですか？', 'システム停止', 'キャンセル', 'manage', 'stop')">システム停止</button>
-    </fieldset>
-    <fieldset>
-        <legend>位置推定</legend>
-        <button onclick="manage('restart_localization')">位置推定の再試行</button>
-        <button onclick="manage('reset_gnss')">GNSSのリセット</button>
-    </fieldset>
-    <fieldset>
-        <legend>読み上げ履歴</legend>
-        <div id="speak_histories" />
-    </fieldset>
-    <fieldset>
-        <legend>対話履歴</legend>
-        <div id="chat_histories" class="chat-container" />
-    </fieldset>
-    <fieldset>
-        <legend>行き先リスト</legend>
-        <div id="current_destinations" />
-    </fieldset>
-    <fieldset>
-        <legend>行き先を選択</legend>
-        <div id="destinations" />
-    </fieldset>
-    <fieldset>
-        <legend>ツアーを選択</legend>
-        <div id="tours" />
-    </fieldset>
-    <fieldset>
-        <legend>カメラ</legend>
-        <img id="camera_left_image" class="camera_image"><img id="camera_center_image" class="camera_image center_image" ><img id="camera_right_image" class="camera_image">
-    </fieldset>
-    <fieldset>
-        <legend>ROS Map</legend>
-        <img id="custom_image">
-    </fieldset>
-    <fieldset>
-        <legend>デバッグ</legend>
-        <pre id="messages" />
-    </fieldset>
+    <div id="cabot_name">未接続</div>
+    <div id="settings-container">
+        <fieldset>
+            <legend>言語</legend>
+            <button onclick="share({type: 'ChangeLanguage', value: 'ja'})">日本語</button>
+            <button onclick="share({type: 'ChangeLanguage', value: 'en'})">英語</button>
+            <button onclick="share({type: 'ChangeLanguage', value: 'zh-Hans'})">中国語</button>
+        </fieldset>
+        <fieldset>
+            <legend>ハンドル</legend>
+            <button onclick="share({type: 'ChangeHandleSide', value: 'left'})">左手持ち</button>
+            <button onclick="share({type: 'ChangeHandleSide', value: 'right'})">右手持ち</button>
+        </fieldset>
+        <fieldset>
+            <legend>タッチモード</legend>
+            タッチ状態: <span id="touch_state">不明</span>
+            <div class="separator"></div>
+            <button onclick="share({type: 'ChangeTouchMode', value: 'cap'})">静電容量</button>
+            <button onclick="share({type: 'ChangeTouchMode', value: 'tof'})">距離センサー(ToF)</button>
+            <button onclick="share({type: 'ChangeTouchMode', value: 'dual'})">両方</button>
+        </fieldset>
+        <fieldset>
+            <legend>テキスト読み上げ</legend>
+            <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.2'})">とても遅い</button>
+            <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.35'})">遅い</button>
+            <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.5'})">普通</button>
+            <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.65'})">速い</button>
+            <button onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">とても速い</button>
+            <div class="separator"></div>
+            <input type="text" id="speak_text" value="こんにちは、お元気ですか？" size="50" />
+            <button onclick="speak_text()">読み上げ</button>
+        </fieldset>
+        <fieldset>
+            <legend>対話</legend>
+            <button onclick="share({type: 'ChatRequest', value: 'open'})">対話開始</button>
+            <button onclick="share({type: 'ChatRequest', value: 'close'})">対話終了</button>
+        </fieldset>
+        <fieldset>
+            <legend>ハンドル操作</legend>
+            <button onclick="manage('resume')">再開</button>
+            <button onclick="manage('pause')">一時停止</button>
+            <button onclick="manage('idle')">自動走行を停止</button>
+            <div class="separator"></div>
+            <button onclick="manage('speedup')">速度を上げる</button>
+            <button onclick="manage('speeddown')">速度を下げる</button>
+        </fieldset>
+        <fieldset>
+            <legend>アクション</legend>
+            <button
+                onclick="generic_confirm('スーツケースのシステム起動を実行します', 'システム起動', 'キャンセル', 'manage', 'start')">システム起動</button>
+            <button
+                onclick="generic_confirm('スーツケースのシステム停止しますが、よろしいですか？', 'システム停止', 'キャンセル', 'manage', 'stop')">システム停止</button>
+            <div class="separator"></div>
+            <button onclick="generic_confirm('スーツケースとの接続が解除されます', 'リブート', 'キャンセル', 'manage', 'reboot')">リブート</button>
+            <button
+                onclick="generic_confirm('緊急停止を解除します。ハンドルから手を必ず離してください。', '緊急停止を解除', 'キャンセル', 'manage', 'release_emergencystop')">緊急停止を解除</button>
+        </fieldset>
+        <fieldset>
+            <legend>ナビゲーション履歴</legend>
+            <div id="navigation_histories" />
+        </fieldset>
+        <fieldset>
+            <legend>行き先リスト</legend>
+            <div id="current_destinations" />
+        </fieldset>
+        <div class="break"></div>
+        <fieldset>
+            <legend>読み上げ履歴</legend>
+            <div id="speak_histories" />
+        </fieldset>
+        <fieldset>
+            <legend>対話履歴</legend>
+            <div id="chat_histories" class="chat-container" />
+        </fieldset>
+        <fieldset>
+            <legend>行き先を選択</legend>
+            <div id="destinations" />
+        </fieldset>
+        <fieldset>
+            <legend>ツアーを選択</legend>
+            <div id="tours" />
+        </fieldset>
+        <fieldset class="full-width">
+            <legend>カメラとマップ</legend>
+            <div>
+                <img id="camera_left_image" class="camera_image"><img id="camera_center_image"
+                    class="camera_image center_image"><img id="camera_right_image" class="camera_image">
+            </div>
+            <div>
+                <img id="custom_image">
+            </div>
+            <div class="rosmap-buttons">
+                <button
+                    onclick="generic_confirm(manage('位置推定が再試行されます。必ずロボットが停止した状態で行ってください。', '位置推定の再試行', 'キャンセル', 'manage', 'restart_localization'))">位置推定の再試行</button>
+                <button
+                    onclick="generic_confirm(manage('GNSSをリセットします', 'GNSSのリセット', 'キャンセル', 'manage', 'reset_gnss'))">GNSSのリセット</button>
+            </div>
+        </fieldset>
+        <fieldset id="debug-info" class="full-width">
+            <legend>デバッグ</legend>
+            <pre id="messages" />
+        </fieldset>
+    </div>
 
     <dialog id="add_destination_dialog">
         <form method="dialog">
