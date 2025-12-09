@@ -13,16 +13,58 @@
     <div id="cabot_name">未接続</div>
     <div id="settings-container">
         <fieldset>
+            <legend>スーツケース</legend>
+            <fieldset data-userapp="OK">
+                <legend>ハンドル設定</legend>
+                <button data-handleside="left" onclick="share({type: 'ChangeHandleSide', value: 'left'})">左手持ち</button>
+                <button data-handleside="right"
+                    onclick="share({type: 'ChangeHandleSide', value: 'right'})">右手持ち</button>
+            </fieldset>
+            <fieldset data-userapp="OK">
+                <legend>タッチ設定</legend>
+                <button data-touchmode="cap" onclick="share({type: 'ChangeTouchMode', value: 'cap'})">静電容量</button>
+                <button data-touchmode="tof"
+                    onclick="share({type: 'ChangeTouchMode', value: 'tof'})">距離センサー(ToF)</button>
+                <button data-touchmode="dual" onclick="share({type: 'ChangeTouchMode', value: 'dual'})">両方</button>
+                <div class="separator2"></div>
+                タッチ状態: <span id="touch_state">不明</span>
+            </fieldset>
+            <fieldset data-system="Active">
+                <legend>ハンドル操作</legend>
+                <button onclick="manage('resume')">再開</button>
+                <div class="separator2"></div>
+                <button onclick="manage('pause')">一時停止</button>
+                <button onclick="manage('idle')">自動走行を停止</button>
+                <div class="separator2"></div>
+                <button onclick="manage('speedup')">速度を上げる</button>
+                <button onclick="manage('speeddown')">速度を下げる</button>
+            </fieldset>
+            <fieldset>
+                <legend>アクション </legend>
+                <button data-system="Inactive"
+                    onclick="generic_confirm('スーツケースのシステム起動を実行します', 'システム起動', 'キャンセル', 'manage', 'start')">システム起動</button>
+                <button data-system="Active"
+                    onclick="generic_confirm('スーツケースのシステム停止しますが、よろしいですか？', 'システム停止', 'キャンセル', 'manage', 'stop')">システム停止</button>
+                <div class="separator2"></div>
+                <button data-system="Inactive"
+                    onclick="generic_confirm('スーツケースとの接続が解除されます', 'リブート', 'キャンセル', 'manage', 'reboot')">リブート</button>
+                <button
+                    onclick="generic_confirm('緊急停止を解除します。ハンドルから手を必ず離してください。', '緊急停止を解除', 'キャンセル', 'manage', 'release_emergencystop')">緊急停止を解除</button>
+            </fieldset>
+        </fieldset>
+        <fieldset data-userapp="OK">
             <legend>言語とテキスト読み上げ</legend>
             <button data-language="ja" onclick="share({type: 'ChangeLanguage', value: 'ja'})">日本語</button>
             <button data-language="en" onclick="share({type: 'ChangeLanguage', value: 'en'})">英語</button>
             <button data-language="zh-CN" onclick="share({type: 'ChangeLanguage', value: 'zh-Hans'})">中国語</button>
             <div class="separator2"></div>
-            <button data-voicerate="very-slow" onclick="share({type: 'ChangeUserVoiceRate', value: '0.2'})">とても遅い</button>
+            <button data-voicerate="very-slow"
+                onclick="share({type: 'ChangeUserVoiceRate', value: '0.2'})">とても遅い</button>
             <button data-voicerate="slow" onclick="share({type: 'ChangeUserVoiceRate', value: '0.35'})">遅い</button>
             <button data-voicerate="normal" onclick="share({type: 'ChangeUserVoiceRate', value: '0.5'})">普通</button>
             <button data-voicerate="fast" onclick="share({type: 'ChangeUserVoiceRate', value: '0.65'})">速い</button>
-            <button data-voicerate="very-fast" onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">とても速い</button>
+            <button data-voicerate="very-fast"
+                onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">とても速い</button>
             <div class="separator2"></div>
             <input type="text" id="speak_text" value="こんにちは、お元気ですか？" size="50" />
             <button onclick="speak_text()">読み上げ</button>
@@ -32,38 +74,8 @@
                 <div id="speak_histories"></div>
             </fieldset>
         </fieldset>
-        <fieldset>
-            <legend>ハンドルとタッチモード</legend>
-            <button data-handleside="left" onclick="share({type: 'ChangeHandleSide', value: 'left'})">左手持ち</button>
-            <button data-handleside="right" onclick="share({type: 'ChangeHandleSide', value: 'right'})">右手持ち</button>
-            <div class="separator2"></div>
-            <button data-touchmode="cap" onclick="share({type: 'ChangeTouchMode', value: 'cap'})">静電容量</button>
-            <button data-touchmode="tof" onclick="share({type: 'ChangeTouchMode', value: 'tof'})">距離センサー(ToF)</button>
-            <button data-touchmode="dual" onclick="share({type: 'ChangeTouchMode', value: 'dual'})">両方</button>
-            <div class="separator2"></div>
-            タッチ状態: <span id="touch_state">不明</span>
-        </fieldset>
-        <fieldset>
-            <legend>スーツケースアクション</legend>
-            <button
-                onclick="generic_confirm('スーツケースのシステム起動を実行します', 'システム起動', 'キャンセル', 'manage', 'start')">システム起動</button>
-            <button
-                onclick="generic_confirm('スーツケースのシステム停止しますが、よろしいですか？', 'システム停止', 'キャンセル', 'manage', 'stop')">システム停止</button>
-            <div class="separator2"></div>
-            <button onclick="generic_confirm('スーツケースとの接続が解除されます', 'リブート', 'キャンセル', 'manage', 'reboot')">リブート</button>
-            <button
-                onclick="generic_confirm('緊急停止を解除します。ハンドルから手を必ず離してください。', '緊急停止を解除', 'キャンセル', 'manage', 'release_emergencystop')">緊急停止を解除</button>
-        </fieldset>
-        <fieldset>
-            <legend>ハンドル操作と対話</legend>
-            <button onclick="manage('resume')">再開</button>
-            <div class="separator2"></div>
-            <button onclick="manage('pause')">一時停止</button>
-            <button onclick="manage('idle')">自動走行を停止</button>
-            <div class="separator2"></div>
-            <button onclick="manage('speedup')">速度を上げる</button>
-            <button onclick="manage('speeddown')">速度を下げる</button>
-            <div class="separator2"></div>
+        <fieldset data-userapp="OK">
+            <legend>対話</legend>
             <button data-chatvisible="true" onclick="share({type: 'ChatRequest', value: 'open'})">対話開始</button>
             <button data-chatvisible="false" onclick="share({type: 'ChatRequest', value: 'close'})">対話終了</button>
             <div class="separator2"></div>
@@ -72,7 +84,7 @@
                 <div id="chat_histories" class="chat-container"></div>
             </fieldset>
         </fieldset>
-        <fieldset>
+        <fieldset data-userapp="OK">
             <legend>ナビゲーション履歴と今後の行き先</legend>
             <fieldset>
                 <legend>履歴</legend>
@@ -83,7 +95,7 @@
                 <div id="current_destinations"></div>
             </fieldset>
         </fieldset>
-        <fieldset>
+        <fieldset data-userapp="OK">
             <legend>ツアーや行き先を選択</legend>
             <fieldset>
                 <legend>ツアーを選択</legend>
@@ -91,7 +103,7 @@
             </fieldset>
             <div id="destinations"></div>
         </fieldset>
-        <fieldset class="full-width">
+        <fieldset data-system="Active" class="full-width">
             <legend>カメラとマップ</legend>
             <div>
                 <img id="camera_left_image" class="camera_image"><img id="camera_center_image"

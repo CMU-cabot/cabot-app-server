@@ -1,3 +1,5 @@
+const urlParams = new URLSearchParams(window.location.search);
+const debug_mode = urlParams.get('debug') == 'true';
 let directory_data = {};
 let node_names = {};
 let tour_names = {};
@@ -8,6 +10,8 @@ let current_handleside = '';
 let cuurrent_touchmode = '';
 let current_voicerate = '';
 let cuurrent_chatvisible = '';
+let current_userapp_level = '';
+let current_system_level = '';
 let add_destination_dialog;
 let generic_confirm_dialog;
 
@@ -296,57 +300,57 @@ function replaceText(id, text) {
     }
 }
 
-function set_highlight(language_changed, voicerate_changed, handleside_changed, touchmode_changed, chatvisible_changed) {
-    if (language_changed != undefined) {
+function set_highlight(language, voicerate, handleside, touchmode, chatvisible) {
+    if (language != undefined) {
         document.querySelectorAll('[data-language]').forEach(el => {
-            if (el.dataset.language === language_changed) {
+            if (el.dataset.language === language) {
                 el.classList.add('selected');
             } else {
                 el.classList.remove('selected');
             }
         });
     }
-    if (handleside_changed != undefined) {
+    if (handleside != undefined) {
         document.querySelectorAll('[data-handleside]').forEach(el => {
-            if (el.dataset.handleside === handleside_changed) {
+            if (el.dataset.handleside === handleside) {
                 el.classList.add('selected');
             } else {
                 el.classList.remove('selected');
             }
         });
     }
-    if (touchmode_changed != undefined) {
+    if (touchmode != undefined) {
         document.querySelectorAll('[data-touchmode]').forEach(el => {
-            if (el.dataset.touchmode === touchmode_changed) {
+            if (el.dataset.touchmode === touchmode) {
                 el.classList.add('selected');
             } else {
                 el.classList.remove('selected');
             }
         });
     }
-    if (chatvisible_changed != undefined) {
+    if (chatvisible != undefined) {
         document.querySelectorAll('[data-chatvisible]').forEach(el => {
-            if (el.dataset.chatvisible === chatvisible_changed) {
+            if (el.dataset.chatvisible === chatvisible) {
                 el.classList.add('selected');
             } else {
                 el.classList.remove('selected');
             }
         });
     }
-    if (voicerate_changed != undefined) {
-        if (voicerate_changed < (0.2 + 0.35) / 2) {
-            voicerate_changed = 'very-slow';
-        } else if (voicerate_changed < (0.35 + 0.5) / 2) {
-            voicerate_changed = 'slow';
-        } else if (voicerate_changed < (0.5 + 0.65) / 2) {
-            voicerate_changed = 'normal';
-        } else if (voicerate_changed < (0.65 + 0.8) / 2) {
-            voicerate_changed = 'fast';
+    if (voicerate != undefined) {
+        if (voicerate < (0.2 + 0.35) / 2) {
+            voicerate = 'very-slow';
+        } else if (voicerate < (0.35 + 0.5) / 2) {
+            voicerate = 'slow';
+        } else if (voicerate < (0.5 + 0.65) / 2) {
+            voicerate = 'normal';
+        } else if (voicerate < (0.65 + 0.8) / 2) {
+            voicerate = 'fast';
         } else {
-            voicerate_changed = 'very-fast';
+            voicerate = 'very-fast';
         }
         document.querySelectorAll('[data-voicerate]').forEach(el => {
-            if (el.dataset.voicerate === voicerate_changed) {
+            if (el.dataset.voicerate === voicerate) {
                 el.classList.add('selected');
             } else {
                 el.classList.remove('selected');
@@ -355,10 +359,41 @@ function set_highlight(language_changed, voicerate_changed, handleside_changed, 
     }
 }
 
+function set_disabled(userapp_level, system_level) {
+    if (userapp_level != undefined) {
+        document.querySelectorAll('[data-userapp]').forEach(el => {
+            const disabled = el.dataset.userapp != userapp_level;
+            if (disabled) {
+                el.classList.add('disabled');
+            } else {
+                el.classList.remove('disabled');
+            }
+            el.querySelectorAll('button, input, select, textarea').forEach(e => {
+                e.disabled = disabled;
+            });
+        });
+    }
+    if (system_level != undefined) {
+        document.querySelectorAll('[data-system]').forEach(el => {
+            const disabled = el.dataset.system != system_level;
+            if (disabled) {
+                el.classList.add('disabled');
+            } else {
+                el.classList.remove('disabled');
+            }
+            if (el.matches('button, input, select, textarea')) {
+                el.disabled = disabled;
+            }
+            el.querySelectorAll('button, input, select, textarea').forEach(e => {
+                e.disabled = disabled;
+            });
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
-    const urlParams = new URLSearchParams(window.location.search);
-    document.getElementById('debug-info').style.display = urlParams.get('debug') == 'true' ? 'block' : 'none';
+    document.getElementById('debug-info').style.display = debug_mode ? 'block' : 'none';
 
     add_destination_dialog = document.getElementById('add_destination_dialog');
     add_destination_dialog.addEventListener('close', add_destination_close);
@@ -399,27 +434,47 @@ document.addEventListener('DOMContentLoaded', function () {
                 replaceText('cabot_name', data['cabot_name']?.at(-1) ?? '未接続');
                 replaceText('touch_state', get_touch_state(data));
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
-                let voicerate = data['share.ChangeUserVoiceRate']?.at(-1);
+                const voicerate = data['share.ChangeUserVoiceRate']?.at(-1);
                 if (voicerate && voicerate != current_voicerate) {
                     current_voicerate = voicerate;
                     voicerate_changed = voicerate;
                 }
-                let handleside = data['share.ChangeHandleSide']?.at(-1);
+                const handleside = data['share.ChangeHandleSide']?.at(-1);
                 if (handleside && handleside != current_handleside) {
                     current_handleside = handleside;
                     handleside_changed = handleside;
                 }
-                let touchmode = data['share.ChangeTouchMode']?.at(-1);
+                const touchmode = data['share.ChangeTouchMode']?.at(-1);
                 if (touchmode && touchmode != cuurrent_touchmode) {
                     cuurrent_touchmode = touchmode;
                     touchmode_changed = touchmode;
                 }
-                let chatvisible = String(data['share.ChatStatus.visible']?.at(-1) ?? false);
+                const chatvisible = String(data['share.ChatStatus.visible']?.at(-1) ?? false);
                 if (chatvisible != cuurrent_chatvisible) {
                     cuurrent_chatvisible = chatvisible;
                     chatvisible_changed = chatvisible;
                 }
                 set_highlight(language_changed, voicerate_changed, handleside_changed, touchmode_changed, chatvisible_changed);
+
+                let userapp_level_changed, system_level_changed;
+                let userapp_level = '';
+                for (const device of data.device_status?.at(-1)?.devices ?? []) {
+                    if (device.type == 'User App') {
+                        userapp_level = device.level;
+                        break;
+                    }
+                }
+                if (userapp_level != current_userapp_level) {
+                    current_userapp_level = userapp_level;
+                    userapp_level_changed = userapp_level;
+                }
+                const system_status = data.system_status?.at(-1) ?? {};
+                const system_level = system_status.level == 'Inactive' && system_status.diagnostics?.length > 0 ? 'Active' : system_status.level;
+                if (system_level != current_system_level) {
+                    current_system_level = system_level;
+                    system_level_changed = system_level;
+                }
+                set_disabled(userapp_level_changed, system_level_changed);
             })
             .catch(error => console.error('Error:', error));
     }, 1000);

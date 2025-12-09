@@ -117,4 +117,12 @@ button.selected {
   background: #0078ff;
   color: #fff;
   border-color: #0060d1;
+  cursor: unset;
+}
+
+.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  filter: grayscale(100%);
+  cursor: not-allowed;
 }
