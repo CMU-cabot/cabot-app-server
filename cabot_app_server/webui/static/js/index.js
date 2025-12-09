@@ -12,8 +12,22 @@ let current_voicerate = '';
 let cuurrent_chatvisible = '';
 let current_userapp_level = '';
 let current_system_level = '';
+let current_touch_level;
 let add_destination_dialog;
 let generic_confirm_dialog;
+
+let cmdPressed = false;
+document.addEventListener("keydown", (e) => {
+    if (e.metaKey) {
+        cmdPressed = true;
+    }
+});
+
+document.addEventListener("keyup", (e) => {
+    if (!e.metaKey) {
+        cmdPressed = false;
+    }
+});
 
 function post_data(url, body) {
     fetch(url, {
@@ -236,30 +250,39 @@ function renderDestinationHistories(data) {
     return html;
 }
 
-function get_touch_state(data) {
-    let result = '';
-    for (const touch of data['touch'] ?? []) {
-        let touch_state;
-        switch (touch.level) {
-            case -1:
-                touch_state = '未接続';
-                break;
-            case 0:
-                touch_state = 'OFF';
-                break;
-            case 1:
-                touch_state = 'ON';
-                break;
-            default:
-                return `予期せぬデータ：${JSON.stringify(touch)}`;
-                break;
+function show_touch_bar(level) {
+    const bar = document.getElementById('touch_bar');
+    const label = document.getElementById('touch_bar-label');
+    if (level < 0) {
+        bar.style.width = "0%";
+        label.textContent = "未検出";
+    } else {
+        bar.style.width = level * 100 + "%";
+        if (level == 0) {
+            label.textContent = 'オフ';
+        } else if (level < 0.25) {
+            bar.classList.add("low");
+            label.textContent = `${Math.floor(level * 100)}%`;
+        } else {
+            bar.classList.remove("low");
+            label.textContent = 'オン';
         }
-        if (result && result != touch_state) {
-            return '判定中';
-        }
-        result = touch_state;
     }
-    return result || '判定中';
+}
+
+function get_touch_level(data) {
+    const buffer = (data['touch'] ?? []).slice(-5);
+    if (buffer.length == 0) {
+        return -1;
+    }
+    let total = 0;
+    for (const touch of buffer) {
+        if (touch.level == -1) {
+            return -1;
+        }
+        total += touch.level;
+    }
+    return total / buffer.length;
 }
 
 function build_index() {
@@ -410,6 +433,9 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => console.error('Error:', error));
 
     __debug__.data_timer = setInterval(() => {
+        if (debug_mode && cmdPressed) {
+            return;
+        }
         fetch('/last_data/', {})
             .then(response => response.json())
             .then(data => {
@@ -432,7 +458,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 replaceHTML('navigation_histories', renderDestinationHistories(data));
                 replaceHTML('current_destinations', renderCurrentDestinations(data));
                 replaceText('cabot_name', data['cabot_name']?.at(-1) ?? '未接続');
-                replaceText('touch_state', get_touch_state(data));
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
                 const voicerate = data['share.ChangeUserVoiceRate']?.at(-1);
                 if (voicerate && voicerate != current_voicerate) {
@@ -475,6 +500,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     system_level_changed = system_level;
                 }
                 set_disabled(userapp_level_changed, system_level_changed);
+                const touch_level = get_touch_level(data);
+                if (current_touch_level != touch_level) {
+                    current_touch_level = touch_level;
+                    show_touch_bar(touch_level);
+                }
             })
             .catch(error => console.error('Error:', error));
     }, 1000);

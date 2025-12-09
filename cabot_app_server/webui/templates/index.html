@@ -26,8 +26,13 @@
                 <button data-touchmode="tof"
                     onclick="share({type: 'ChangeTouchMode', value: 'tof'})">距離センサー(ToF)</button>
                 <button data-touchmode="dual" onclick="share({type: 'ChangeTouchMode', value: 'dual'})">両方</button>
-                <div class="separator2"></div>
-                タッチ状態: <span id="touch_state">不明</span>
+            </fieldset>
+            <fieldset>
+                <legend>タッチ状態</legend>
+                <div class="bar-container">
+                    <div class="bar-fill" id="touch_bar"></div>
+                    <span class="bar-label" id="touch_bar-label"></span>
+                </div>
             </fieldset>
             <fieldset data-system="Active">
                 <legend>ハンドル操作</legend>
@@ -66,7 +71,7 @@
             <button data-voicerate="very-fast"
                 onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">とても速い</button>
             <div class="separator2"></div>
-            <input type="text" id="speak_text" value="" size="40" placeholder="入力してください"/>
+            <input type="text" id="speak_text" value="" size="40" placeholder="入力してください" />
             <button onclick="speak_text()">読み上げ</button>
             <div class="separator2"></div>
             <fieldset>
