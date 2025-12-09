@@ -126,3 +126,8 @@ button.selected {
   filter: grayscale(100%);
   cursor: not-allowed;
 }
+
+input:placeholder-shown + button {
+  opacity: 0.5;
+  pointer-events: none;
+}
