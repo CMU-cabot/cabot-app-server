@@ -17,19 +17,6 @@ let current_battery_status = ''
 let add_destination_dialog;
 let generic_confirm_dialog;
 
-let cmdPressed = false;
-document.addEventListener("keydown", (e) => {
-    if (e.metaKey) {
-        cmdPressed = true;
-    }
-});
-
-document.addEventListener("keyup", (e) => {
-    if (!e.metaKey) {
-        cmdPressed = false;
-    }
-});
-
 function post_data(url, body) {
     fetch(url, {
         method: 'POST',
@@ -248,6 +235,43 @@ function renderDestinationHistories(data) {
         }
         html += `<div>${name}</div>`;
     }
+    return html;
+}
+
+function renderSystemStatus(data) {
+    let html = "";
+    const status = data.system_status?.at(-1) ?? {};
+    const sorted = [...(status.diagnostics ?? [])].sort((a, b) =>
+        a.name.localeCompare(b.name)
+    );
+    for (const diag of sorted) {
+        if (diag.name == '/CaBot' || diag.level > 1) {
+            html += '<table>';
+            html += `<thead><tr><td>${diag.name}</td><td>${diag.message}</td></tr></thead>`;
+            html += '<tbody>';
+            for (const value of diag.values ?? []) {
+                html += `<tr><td>${value.key}</td><td>${value.value}</td></tr>`;
+            }
+            html += '</tbody>';
+            html += `</table>`;
+        }
+    }
+    return html;
+}
+
+function renderTemperature(data) {
+    let html = "<table>";
+    const sorted = [...(data.device_status?.at(-1)?.devices ?? [])].sort((a, b) =>
+        a.model.localeCompare(b.model)
+    );
+    html += '<tbody>';
+    for (const device of sorted) {
+        if (device.type == 'Suitcase Temperature') {
+            html += `<tr><td>${device.model}</td><td>${device.level}</td><td>${device.message}</td></tr>`;
+        }
+    }
+    html += '</tbody>';
+    html += "</table>";
     return html;
 }
 
@@ -478,8 +502,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 replaceHTML('chat_histories', renderChatHistories(data));
                 replaceHTML('navigation_histories', renderDestinationHistories(data));
                 replaceHTML('current_destinations', renderCurrentDestinations(data));
+                replaceHTML('system_info', renderSystemStatus(data));
+                replaceHTML('temperature', renderTemperature(data));
                 replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
-                if (debug_mode && !cmdPressed) {
+                if (debug_mode && !document.getElementById('pause_debug_update').checked) {
                     document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
                 }
                 const voicerate = data['share.ChangeUserVoiceRate']?.at(-1);

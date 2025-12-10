@@ -169,3 +169,20 @@ input:placeholder-shown+button {
   font-size: 14px;
   color: #000;
 }
+
+table:not(:first-of-type) {
+  margin-top: 16px;
+}
+
+table td {
+  min-width: 30px;
+  word-break: break-all;
+}
+
+table td:first-child {
+  min-width: 165px;
+}
+
+table thead tr td {
+  font-weight: bold;
+}
