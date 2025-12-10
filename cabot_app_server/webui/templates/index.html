@@ -56,6 +56,13 @@
                 <button
                     onclick="generic_confirm('緊急停止を解除します。ハンドルから手を必ず離してください。', '緊急停止を解除', 'キャンセル', 'manage', 'release_emergencystop')">緊急停止を解除</button>
             </fieldset>
+            <fieldset>
+                <legend>バッテリー残量</legend>
+                <div class="bar-container">
+                    <div class="bar-fill" id="battery_bar"></div>
+                    <span class="bar-label" id="battery_bar-label"></span>
+                </div>
+            </fieldset>
         </fieldset>
         <fieldset data-userapp="OK">
             <legend>言語とテキスト読み上げ</legend>

@@ -13,6 +13,7 @@ let cuurrent_chatvisible = '';
 let current_userapp_level = '';
 let current_system_level = '';
 let current_touch_level;
+let current_battery_status = ''
 let add_destination_dialog;
 let generic_confirm_dialog;
 
@@ -230,7 +231,7 @@ function renderChatHistories(data) {
 
 function renderDestinationHistories(data) {
     let html = "";
-    const arr = data['destination'] ?? [];
+    const arr = data.destination ?? [];
     const destinations = arr.filter((v, i) => v !== arr[i - 1]);
     for (const destination of destinations) {
         let name
@@ -261,17 +262,17 @@ function show_touch_bar(level) {
         if (level == 0) {
             label.textContent = 'オフ';
         } else if (level < 0.25) {
-            bar.classList.add("low");
+            bar.classList.add("error");
             label.textContent = `${Math.floor(level * 100)}%`;
         } else {
-            bar.classList.remove("low");
+            bar.classList.remove("error");
             label.textContent = 'オン';
         }
     }
 }
 
 function get_touch_level(data) {
-    const buffer = (data['touch'] ?? []).slice(-5);
+    const buffer = (data.touch ?? []).slice(-5);
     if (buffer.length == 0) {
         return -1;
     }
@@ -283,6 +284,29 @@ function get_touch_level(data) {
         total += touch.level;
     }
     return total / buffer.length;
+}
+
+function show_battery_bar(battery_status) {
+    const bar = document.getElementById('battery_bar');
+    const label = document.getElementById('battery_bar-label');
+    const text = battery_status.message ?? '不明';
+    const percent = parseFloat(text) || 0;
+    label.textContent = text;
+    bar.style.width = percent + "%";
+    switch (battery_status.level) {
+        case 1:
+            bar.classList.add("warning");
+            bar.classList.remove("error");
+            break;
+        case 2:
+            bar.classList.remove("warning");
+            bar.classList.add("error");
+            break;
+        default:
+            bar.classList.remove("warning");
+            bar.classList.remove("error");
+            break
+    }
 }
 
 function build_index() {
@@ -433,9 +457,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => console.error('Error:', error));
 
     __debug__.data_timer = setInterval(() => {
-        if (debug_mode && cmdPressed) {
-            return;
-        }
         fetch('/last_data/', {})
             .then(response => response.json())
             .then(data => {
@@ -457,8 +478,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 replaceHTML('chat_histories', renderChatHistories(data));
                 replaceHTML('navigation_histories', renderDestinationHistories(data));
                 replaceHTML('current_destinations', renderCurrentDestinations(data));
-                replaceText('cabot_name', data['cabot_name']?.at(-1) ?? '未接続');
-                document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
+                replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
+                if (debug_mode && !cmdPressed) {
+                    document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
+                }
                 const voicerate = data['share.ChangeUserVoiceRate']?.at(-1);
                 if (voicerate && voicerate != current_voicerate) {
                     current_voicerate = voicerate;
@@ -504,6 +527,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (current_touch_level != touch_level) {
                     current_touch_level = touch_level;
                     show_touch_bar(touch_level);
+                }
+                const battery_status = data.battery_status?.at(-1) ?? {};
+                const battery_status_json = JSON.stringify(battery_status);
+                if (current_battery_status != battery_status_json) {
+                    current_battery_status = battery_status_json;
+                    show_battery_bar(battery_status);
                 }
             })
             .catch(error => console.error('Error:', error));

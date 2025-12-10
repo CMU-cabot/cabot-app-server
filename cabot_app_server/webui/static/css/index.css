@@ -148,7 +148,11 @@ input:placeholder-shown+button {
   transition: width 0.1s ease;
 }
 
-.bar-fill.low {
+.bar-fill.warning {
+  background-color: #fbc02d;
+}
+
+.bar-fill.error {
   background-color: #e53935;
 }
 
