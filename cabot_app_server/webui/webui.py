@@ -224,3 +224,7 @@ class WebUI:
 
         if event not in self.IGNORE_EVENTS:
             common.logger.info(f"[IGNORE handle_event] event={event}, data={data}")
+            self.last_data[f'___{event}___'] = [data]
+
+
+common.last_localize_status = 2  # force reset
