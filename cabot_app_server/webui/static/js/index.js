@@ -486,6 +486,9 @@ function set_disabled(userapp_level, system_level) {
                 e.disabled = disabled;
             });
         });
+        const el = document.getElementById('user_app_status');
+        el.textContent = userapp_level == 'OK' ? '接続中' : '接続されていません';
+        el.style.background = userapp_level == 'OK' ? '#66BB6A' : '#EF5350';
     }
     if (system_level != undefined) {
         document.querySelectorAll('[data-system]').forEach(el => {

@@ -174,17 +174,17 @@ input:placeholder-shown+button {
 
 .bar-fill {
   height: 100%;
-  background-color: #4caf50;
+  background-color: #66BB6A;
   width: 0%;
   transition: width 0.1s ease;
 }
 
 .bar-fill.warning {
-  background-color: #fbc02d;
+  background-color: #FFEE58;
 }
 
 .bar-fill.error {
-  background-color: #e53935;
+  background-color: #EF5350;
 }
 
 .bar-label {
@@ -231,4 +231,9 @@ legend[onclick]:hover {
 
 #restart_localization:disabled {
   cursor: not-allowed;
+}
+
+#user_app_status {
+  width: 200px;
+  text-align: center;
 }
