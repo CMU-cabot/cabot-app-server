@@ -68,6 +68,7 @@ class WebUI:
 
         @app.route('/last_data/')
         def last_data():
+            self.last_data['localize_status'] = [common.last_localize_status]
             key = request.args.get('key')
             return jsonify({key: self.last_data.get(key, [])}) if key else jsonify(self.last_data)
 

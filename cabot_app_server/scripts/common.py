@@ -47,6 +47,7 @@ from geometry_msgs.msg import Quaternion
 
 from mf_localization_msgs.srv import MFTrigger
 from mf_localization_msgs.srv import RestartLocalization
+from mf_localization_msgs.msg import MFLocalizeStatus
 from cabot_msgs.msg import Log, PoseLog2
 
 from cabot_common import util
@@ -85,6 +86,7 @@ last_camera_right_image: CompressedImage = None
 last_camera_right_orientation: Quaternion = None
 last_location: PoseLog2 = None
 last_rosmap_image: CompressedImage = None
+last_localize_status = MFLocalizeStatus.UNKNOWN
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -678,6 +680,7 @@ class CabotNode_Sub(Node):
         self.rs3_image_sub = self.create_subscription(CompressedImage, '/rs3/color/image_raw/compressed', self.camera_left_image_callback, 10)
         self.location_sub = self.create_subscription(PoseLog2, '/cabot/pose_log2', self.location_callback, 10)
         self.rosmap_image_sub = self.create_subscription(CompressedImage, '/rosmap_image/compressed', self.rosmap_image_callback, 10)
+        self.localize_status_sub = self.create_subscription(MFLocalizeStatus, "/localize_status", self.localize_status_callback, 10)
 
 
     def diagnostic_agg_callback(self, msg):
@@ -748,6 +751,10 @@ class CabotNode_Sub(Node):
     def location_callback(self, msg):
         global last_location
         last_location = msg
+
+    def localize_status_callback(self, msg):
+        global last_localize_status
+        last_localize_status = msg.status
 
 
 class CabotNode_Common():
