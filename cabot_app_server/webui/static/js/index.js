@@ -454,12 +454,14 @@ function set_highlight(language, voicerate, handleside, touchmode, chatvisible) 
             voicerate = 'very-slow';
         } else if (voicerate < (0.35 + 0.5) / 2) {
             voicerate = 'slow';
-        } else if (voicerate < (0.5 + 0.65) / 2) {
+        } else if (voicerate < (0.5 + 0.6) / 2) {
             voicerate = 'normal';
-        } else if (voicerate < (0.65 + 0.8) / 2) {
+        } else if (voicerate < (0.6 + 0.7) / 2) {
             voicerate = 'fast';
-        } else {
+        } else if (voicerate < (0.7 + 0.8) / 2) {
             voicerate = 'very-fast';
+        } else {
+            voicerate = 'super-fast';
         }
         document.querySelectorAll('[data-voicerate]').forEach(el => {
             if (el.dataset.voicerate === voicerate) {
