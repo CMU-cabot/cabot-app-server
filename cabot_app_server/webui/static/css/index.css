@@ -5,6 +5,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+dialog {
+  font-size: 16px;
+}
+
 #cabot_name {
   font-size: 24px;
   font-weight: bold;
