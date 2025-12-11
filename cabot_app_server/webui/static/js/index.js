@@ -354,15 +354,15 @@ function get_touch_level(data) {
 function renderTouchLevel(data) {
     const level = get_touch_level(data);
     let percent = Math.max(level * 100, 0);
-    let text = '未検出';
+    let text = 'オン';
     let cls = '';
-    if (level == 0) {
+    if (level < 0) {
+        text = '未検出';
+    } else if (level == 0) {
         text = 'オフ';
     } else if (level < 0.25) {
         cls = "error";
         text = `${Math.floor(level * 100)}%`;
-    } else {
-        text = 'オン';
     }
     let html = '';
     html += `
