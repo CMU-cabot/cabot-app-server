@@ -12,8 +12,6 @@ let current_voicerate = '';
 let cuurrent_chatvisible = '';
 let current_userapp_level = '';
 let current_system_level = '';
-let current_touch_level;
-let current_battery_status = ''
 let add_destination_dialog;
 let generic_confirm_dialog;
 
@@ -265,14 +263,12 @@ function renderSystemStatus(data) {
 }
 
 function renderTemperature(data) {
-    let html = "<table>";
+    let html = '<table><tbody>';
     const sorted = [...(data.device_status?.at(-1)?.devices ?? [])].sort((a, b) =>
         a.model.localeCompare(b.model)
     );
-    html += '<tbody>';
     for (const device of sorted) {
         if (device.type == 'Suitcase Temperature') {
-            // html += `<tr><td>${device.model}</td><td>${device.level}</td><td>${device.message}</td></tr>`;
             const temperature = parseFloat(device.message) || 0;
             const percent = Math.min(Math.max(temperature - 10, 0), 50) / 50 * 100;
             const cls = device.level?.toLowerCase() || '';
@@ -287,29 +283,27 @@ function renderTemperature(data) {
             `;
         }
     }
-    html += '</tbody>';
-    html += "</table>";
+    html += '</tbody></table>';
     return html;
 }
 
-function show_touch_bar(level) {
-    const bar = document.getElementById('touch_bar');
-    const label = document.getElementById('touch_bar-label');
-    if (level < 0) {
-        bar.style.width = "0%";
-        label.textContent = "未検出";
-    } else {
-        bar.style.width = level * 100 + "%";
-        if (level == 0) {
-            label.textContent = 'オフ';
-        } else if (level < 0.25) {
-            bar.classList.add("error");
-            label.textContent = `${Math.floor(level * 100)}%`;
-        } else {
-            bar.classList.remove("error");
-            label.textContent = 'オン';
-        }
+function renderBattery(data) {
+    let html = '<table><tbody>';
+    for (const battery of data.battery_status?.at(-1)?.values ?? []) {
+        const percent = parseFloat(battery.value) || 0;
+        const cls = percent <= 10 ? 'error' : percent <= 20 ? 'warning' : '';
+        html += `
+            <tr>
+                <td>${battery.key}</td>
+                <td><div class="bar-container">
+                    <div class="bar-fill ${cls}" style="width:${percent}%"></div>
+                    <span class="bar-label">${battery.value}</span>
+                </div></td>
+            </tr>
+        `;
     }
+    html += '</tbody></table>';
+    return html;
 }
 
 function get_touch_level(data) {
@@ -327,27 +321,27 @@ function get_touch_level(data) {
     return total / buffer.length;
 }
 
-function show_battery_bar(battery_status) {
-    const bar = document.getElementById('battery_bar');
-    const label = document.getElementById('battery_bar-label');
-    const text = battery_status.message ?? '不明';
-    const percent = parseFloat(text) || 0;
-    label.textContent = text;
-    bar.style.width = percent + "%";
-    switch (battery_status.level) {
-        case 1:
-            bar.classList.add("warning");
-            bar.classList.remove("error");
-            break;
-        case 2:
-            bar.classList.remove("warning");
-            bar.classList.add("error");
-            break;
-        default:
-            bar.classList.remove("warning");
-            bar.classList.remove("error");
-            break
+function renderTouchLevel(data) {
+    const level = get_touch_level(data);
+    let percent = Math.max(level * 100, 0);
+    let text = '未検出';
+    let cls = '';
+    if (level == 0) {
+        text = 'オフ';
+    } else if (level < 0.25) {
+        cls = "error";
+        text = `${Math.floor(level * 100)}%`;
+    } else {
+        text = 'オン';
     }
+    let html = '';
+    html += `
+        <div class="bar-container">
+            <div class="bar-fill ${cls}" style="width:${percent}%"></div>
+            <span class="bar-label">${text}</span>
+        </div>
+    `;
+    return html;
 }
 
 function build_index() {
@@ -520,6 +514,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 replaceHTML('navigation_histories', renderDestinationHistories(data));
                 replaceHTML('current_destinations', renderCurrentDestinations(data));
                 replaceHTML('system_info', renderSystemStatus(data));
+                replaceHTML('touch_level', renderTouchLevel(data));
+                replaceHTML('battery', renderBattery(data));
                 replaceHTML('temperature', renderTemperature(data));
                 replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
                 if (debug_mode && !document.getElementById('pause_debug_update').checked) {
@@ -566,17 +562,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     system_level_changed = system_level;
                 }
                 set_disabled(userapp_level_changed, system_level_changed);
-                const touch_level = get_touch_level(data);
-                if (current_touch_level != touch_level) {
-                    current_touch_level = touch_level;
-                    show_touch_bar(touch_level);
-                }
-                const battery_status = data.battery_status?.at(-1) ?? {};
-                const battery_status_json = JSON.stringify(battery_status);
-                if (current_battery_status != battery_status_json) {
-                    current_battery_status = battery_status_json;
-                    show_battery_bar(battery_status);
-                }
             })
             .catch(error => console.error('Error:', error));
     }, 1000);
