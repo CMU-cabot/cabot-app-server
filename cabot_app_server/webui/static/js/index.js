@@ -198,6 +198,14 @@ function tour_name(tour) {
     return tour_names[tour] ?? tour;
 }
 
+function get_current_tourname(data) {
+    const tour = data['share.Tour']?.at(-1);
+    if (tour?.id && (tour.currentDestination || (tour.destinations?.length > 0))) {
+        return tour_names[tour.id] || "カスタムツアー";
+    }
+    return '';
+}
+
 function renderCurrentDestinations(data) {
     let html = "";
     const tour = data['share.Tour']?.at(-1);
@@ -540,6 +548,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 replaceHTML('battery', renderBattery(data));
                 replaceHTML('temperature', renderTemperature(data));
                 replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
+                replaceText('tour_name', get_current_tourname(data));
                 if (debug_mode && !document.getElementById('pause_debug_update').checked) {
                     document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
                 }
