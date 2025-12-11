@@ -97,6 +97,8 @@ class WebUI:
                 return jsonify({'error': 'data parameter is required'}), 400
 
             common.logger.info(f"/manage/ data={data}")
+            if data == 'restart_localization':
+                common.last_localize_status = 0
             manage_cabot_char.callback(0, data.encode("utf-8"))
             return jsonify({'status': 'ok'})
 
