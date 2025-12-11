@@ -54,6 +54,11 @@ function speak_text() {
 function toggleBox(legend) {
     const fs = legend.closest("fieldset");
     fs.classList.toggle("collapsed");
+    document.querySelectorAll("fieldset.toggle").forEach(el => {
+        if (el !== fs) {
+            el.classList.add("collapsed");
+        }
+    });
 }
 
 function add_destination(node) {
@@ -131,7 +136,7 @@ function renderSections(sections, level = 0) {
             }
             for (const item of section.items) {
                 if (item.content?.sections) {
-                    html += `<fieldset class="collapsed"><legend onclick="toggleBox(this)">${item.title}</legend>`;
+                    html += `<fieldset class="collapsed toggle"><legend onclick="toggleBox(this)">${item.title}</legend>`;
                     html += renderSections(item.content.sections, level + 1);
                     html += `</fieldset>`;
                 } else {

@@ -186,3 +186,14 @@ table td:first-child {
 table thead tr td {
   font-weight: bold;
 }
+
+div[onclick],
+legend[onclick] {
+  cursor: pointer;
+  color: #00f
+}
+
+div[onclick]:hover,
+legend[onclick]:hover {
+  background-color: #eef;
+}
