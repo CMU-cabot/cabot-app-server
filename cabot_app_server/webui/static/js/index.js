@@ -272,7 +272,19 @@ function renderTemperature(data) {
     html += '<tbody>';
     for (const device of sorted) {
         if (device.type == 'Suitcase Temperature') {
-            html += `<tr><td>${device.model}</td><td>${device.level}</td><td>${device.message}</td></tr>`;
+            // html += `<tr><td>${device.model}</td><td>${device.level}</td><td>${device.message}</td></tr>`;
+            const temperature = parseFloat(device.message) || 0;
+            const percent = Math.min(Math.max(temperature - 10, 0), 50) / 50 * 100;
+            const cls = device.level?.toLowerCase() || '';
+            html += `
+                <tr>
+                    <td>${device.model.replaceAll('_', ' ')}</td>
+                    <td><div class="bar-container">
+                        <div class="bar-fill ${cls}" style="width:${percent}%"></div>
+                        <span class="bar-label">${device.message}</span>
+                    </div></td>
+                </tr>
+            `;
         }
     }
     html += '</tbody>';
