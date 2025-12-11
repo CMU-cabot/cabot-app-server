@@ -29,6 +29,7 @@
 
 dialog {
   font-size: 16px;
+  border-radius: 6px;
 }
 
 #cabot_name {
