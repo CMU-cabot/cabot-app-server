@@ -595,6 +595,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     system_level_changed = system_level;
                 }
                 set_disabled(userapp_level_changed, system_level_changed);
+                const restart_localization = document.getElementById('restart_localization');
+                const restarting = data.localize_status?.at(-1) == 1;
+                if (restart_localization.disabled != restarting) {
+                    restart_localization.disabled = restarting;
+                    restart_localization.textContent = restarting ? '位置推定中' : '位置推定の再試行';
+                }
             })
             .catch(error => console.error('Error:', error));
     }, 1000);

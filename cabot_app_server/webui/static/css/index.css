@@ -228,3 +228,7 @@ div[onclick]:hover,
 legend[onclick]:hover {
   background-color: #eef;
 }
+
+#restart_localization:disabled {
+  cursor: not-allowed;
+}
