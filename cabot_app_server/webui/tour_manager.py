@@ -36,12 +36,12 @@ class TourManager:
     DIRECTORY_URL = 'http://localhost:9090/query/directory?user=cabot&lat={lat}&lng={lng}&dist={dist}&lang={lang}'
 
     def __init__(self):
-        self.features = {}
+        self.features = []
         self.tour_data = {}
         self.directory = {}
 
     def background_task(self):
-        self.features = {}
+        self.features = []
         self.tour_data = {}
         self.directory = {}
         for retry in range(60):

@@ -631,6 +631,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             console.log(data);
+            if (!data.tours) {
+                alert('ただいま準備中です。後で再読み込みしてください。');
+                return;
+            }
             directory_data = data;
             __debug__.data_timer = setInterval(handle_last_data, 1000);
             __debug__.camera_timer = setInterval(handle_camera_image, 1000);
