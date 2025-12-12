@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import json
+import os
 import time
 import traceback
 from flask import Flask
@@ -173,7 +174,8 @@ class CaBotTCP():
             # wait while heart beat is valid
             self.last_heartbeat = time.time()
             common.logger.info("CaBotTCP listening...")
-            self.webui = __import__("webui").WebUI(self)
+            if os.getenv('CABOT_USE_WEBUI') == '1':
+                self.webui = __import__("webui").WebUI(self)
             self.app.run(host='0.0.0.0', port=5000)
 
         except (KeyboardInterrupt, SystemExit):
