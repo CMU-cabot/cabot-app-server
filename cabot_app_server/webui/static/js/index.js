@@ -508,6 +508,115 @@ function set_disabled(userapp_level, system_level) {
     }
 }
 
+function handle_last_data() {
+    fetch('/last_data/', {})
+        .then(response => response.json())
+        .then(data => {
+            last_data = data;
+            let lang = data['share.ChangeLanguage']?.at(-1);
+            if (lang == 'zh-Hans') {
+                lang = 'zh-CN';
+            }
+            let language_changed, voicerate_changed, handleside_changed, touchmode_changed, chatvisible_changed;
+            if (lang && lang != current_lang) {
+                console.log(`Switch to ${lang}`);
+                current_lang = lang;
+                language_changed = lang
+                build_index();
+                replaceHTML('destinations', renderSections(directory_data.sections[current_lang]));
+                replaceHTML('tours', renderTours(directory_data.tours));
+            }
+            replaceHTML('speak_histories', renderSpeakHistories(data));
+            replaceHTML('chat_histories', renderChatHistories(data));
+            replaceHTML('navigation_histories', renderDestinationHistories(data));
+            replaceHTML('current_destinations', renderCurrentDestinations(data));
+            replaceHTML('system_info', renderSystemStatus(data));
+            replaceHTML('touch_level', renderTouchLevel(data));
+            replaceHTML('battery', renderBattery(data));
+            replaceHTML('temperature', renderTemperature(data));
+            replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
+            replaceText('tour_name', get_current_tourname(data));
+            if (debug_mode && !document.getElementById('pause_debug_update').checked) {
+                document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
+            }
+            const voicerate = data['share.ChangeUserVoiceRate']?.at(-1);
+            if (voicerate && voicerate != current_voicerate) {
+                current_voicerate = voicerate;
+                voicerate_changed = voicerate;
+            }
+            const handleside = data['share.ChangeHandleSide']?.at(-1);
+            if (handleside && handleside != current_handleside) {
+                current_handleside = handleside;
+                handleside_changed = handleside;
+            }
+            const touchmode = data['share.ChangeTouchMode']?.at(-1);
+            if (touchmode && touchmode != cuurrent_touchmode) {
+                cuurrent_touchmode = touchmode;
+                touchmode_changed = touchmode;
+            }
+            const chatvisible = String(data['share.ChatStatus.visible']?.at(-1) ?? false);
+            if (chatvisible != cuurrent_chatvisible) {
+                cuurrent_chatvisible = chatvisible;
+                chatvisible_changed = chatvisible;
+            }
+            set_highlight(language_changed, voicerate_changed, handleside_changed, touchmode_changed, chatvisible_changed);
+
+            let userapp_level_changed, system_level_changed;
+            let userapp_level = '';
+            for (const device of data.device_status?.at(-1)?.devices ?? []) {
+                if (device.type == 'User App') {
+                    userapp_level = device.level;
+                    break;
+                }
+            }
+            if (userapp_level != current_userapp_level) {
+                current_userapp_level = userapp_level;
+                userapp_level_changed = userapp_level;
+            }
+            const system_status = data.system_status?.at(-1) ?? {};
+            const system_level = system_status.level == 'Inactive' && system_status.diagnostics?.length > 0 ? 'Active' : system_status.level;
+            if (system_level != current_system_level) {
+                current_system_level = system_level;
+                system_level_changed = system_level;
+            }
+            set_disabled(userapp_level_changed, system_level_changed);
+            const restart_localization = document.getElementById('restart_localization');
+            const localize_status = data.localize_status?.at(-1)
+            const text = localize_status == 2 ? '位置推定の再試行' : localize_status == 1 ? '位置推定中' : '位置推定状態不明';
+            const disabled = localize_status != 2;
+            if (restart_localization.textContent != text || restart_localization.disabled != disabled) {
+                restart_localization.textContent = text;
+                restart_localization.disabled = localize_status != 2;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+
+}
+
+function handle_camera_image() {
+    fetch('/camera_image/', {})
+        .then(response => response.json())
+        .then(data => {
+            for (d of data) {
+                const img = document.getElementById(`camera_${d.position}_image`);
+                img.src = d.image ?? '';
+                img.style.transform = d.transform ?? '';
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function handle_custom_image() {
+    fetch('/custom_image/', {})
+        .then(response => response.json())
+        .then(data => {
+            const img = document.getElementById('custom_image');
+            img.src = data.image ?? '';
+            img.style.transform = data.transform ?? '';
+        })
+        .catch(error => console.error('Error:', error));
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('debug-info').style.display = debug_mode ? 'block' : 'none';
@@ -523,113 +632,12 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
             console.log(data);
             directory_data = data;
+            __debug__.data_timer = setInterval(handle_last_data, 1000);
+            __debug__.camera_timer = setInterval(handle_camera_image, 1000);
+            __debug__.image_timer = setInterval(handle_custom_image, 1000);
         })
-        .catch(error => console.error('Error:', error));
-
-    __debug__.data_timer = setInterval(() => {
-        fetch('/last_data/', {})
-            .then(response => response.json())
-            .then(data => {
-                last_data = data;
-                let lang = data['share.ChangeLanguage']?.at(-1);
-                if (lang == 'zh-Hans') {
-                    lang = 'zh-CN';
-                }
-                let language_changed, voicerate_changed, handleside_changed, touchmode_changed, chatvisible_changed;
-                if (lang && lang != current_lang) {
-                    console.log(`Switch to ${lang}`);
-                    current_lang = lang;
-                    language_changed = lang
-                    build_index();
-                    replaceHTML('destinations', renderSections(directory_data.sections[current_lang]));
-                    replaceHTML('tours', renderTours(directory_data.tours));
-                }
-                replaceHTML('speak_histories', renderSpeakHistories(data));
-                replaceHTML('chat_histories', renderChatHistories(data));
-                replaceHTML('navigation_histories', renderDestinationHistories(data));
-                replaceHTML('current_destinations', renderCurrentDestinations(data));
-                replaceHTML('system_info', renderSystemStatus(data));
-                replaceHTML('touch_level', renderTouchLevel(data));
-                replaceHTML('battery', renderBattery(data));
-                replaceHTML('temperature', renderTemperature(data));
-                replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
-                replaceText('tour_name', get_current_tourname(data));
-                if (debug_mode && !document.getElementById('pause_debug_update').checked) {
-                    document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
-                }
-                const voicerate = data['share.ChangeUserVoiceRate']?.at(-1);
-                if (voicerate && voicerate != current_voicerate) {
-                    current_voicerate = voicerate;
-                    voicerate_changed = voicerate;
-                }
-                const handleside = data['share.ChangeHandleSide']?.at(-1);
-                if (handleside && handleside != current_handleside) {
-                    current_handleside = handleside;
-                    handleside_changed = handleside;
-                }
-                const touchmode = data['share.ChangeTouchMode']?.at(-1);
-                if (touchmode && touchmode != cuurrent_touchmode) {
-                    cuurrent_touchmode = touchmode;
-                    touchmode_changed = touchmode;
-                }
-                const chatvisible = String(data['share.ChatStatus.visible']?.at(-1) ?? false);
-                if (chatvisible != cuurrent_chatvisible) {
-                    cuurrent_chatvisible = chatvisible;
-                    chatvisible_changed = chatvisible;
-                }
-                set_highlight(language_changed, voicerate_changed, handleside_changed, touchmode_changed, chatvisible_changed);
-
-                let userapp_level_changed, system_level_changed;
-                let userapp_level = '';
-                for (const device of data.device_status?.at(-1)?.devices ?? []) {
-                    if (device.type == 'User App') {
-                        userapp_level = device.level;
-                        break;
-                    }
-                }
-                if (userapp_level != current_userapp_level) {
-                    current_userapp_level = userapp_level;
-                    userapp_level_changed = userapp_level;
-                }
-                const system_status = data.system_status?.at(-1) ?? {};
-                const system_level = system_status.level == 'Inactive' && system_status.diagnostics?.length > 0 ? 'Active' : system_status.level;
-                if (system_level != current_system_level) {
-                    current_system_level = system_level;
-                    system_level_changed = system_level;
-                }
-                set_disabled(userapp_level_changed, system_level_changed);
-                const restart_localization = document.getElementById('restart_localization');
-                const localize_status = data.localize_status?.at(-1)
-                const text = localize_status == 2 ? '位置推定の再試行' : localize_status == 1 ? '位置推定中' : '位置推定状態不明';
-                const disabled = localize_status != 2;
-                if (restart_localization.textContent != text || restart_localization.disabled != disabled) {
-                    restart_localization.textContent = text;
-                    restart_localization.disabled = localize_status != 2;
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }, 1000);
-
-    __debug__.camera_timer = setInterval(() => {
-        fetch('/camera_image/', {})
-            .then(response => response.json())
-            .then(data => {
-                for (d of data) {
-                    const img = document.getElementById(`camera_${d.position}_image`);
-                    img.src = d.image ?? '';
-                    img.style.transform = d.transform ?? '';
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }, 1000);
-    __debug__.image_timer = setInterval(() => {
-        fetch('/custom_image/', {})
-            .then(response => response.json())
-            .then(data => {
-                const img = document.getElementById('custom_image');
-                img.src = data.image ?? '';
-                img.style.transform = data.transform ?? '';
-            })
-            .catch(error => console.error('Error:', error));
-    }, 1000);
+        .catch(error => {
+            console.error('Error:', error);
+            alert(`地図データの取得に失敗しました。Error: ${error}`);
+        });
 });
