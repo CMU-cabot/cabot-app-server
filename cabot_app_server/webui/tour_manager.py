@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import threading
+import time
 import requests
 import json
 import common
@@ -43,22 +44,28 @@ class TourManager:
         self.features = {}
         self.tour_data = {}
         self.directory = {}
-        self.config = requests.get(self.CONFIG_URL).json()
-        common.logger.info(f"config={self.config}")
-        initial_location = self.config.get('INITIAL_LOCATION', {})
-        dist = self.config.get('MAX_RADIUS')
-        lat = initial_location.get('lat')
-        lng = initial_location.get('lng')
-        if dist and lat and lng:
-            self.landmarks = requests.get(self.START_URL.format(lat=lat, lng=lng, dist=dist)).json()
-            self.features = requests.get(self.FEATURES_URL).json()
-            common.logger.info(f"{len(self.features)} features")
-            self.tour_data = requests.get(self.TOURDATA_URL).json()
-            common.logger.info(f"{len(self.tour_data.get('tours', []))} tours, {len(self.tour_data.get('destinations', []))} destinations")
-            for lang in ['ja', 'en', 'zh-CN']:
-                directory = requests.get(self.DIRECTORY_URL.format(lat=lat, lng=lng, dist=dist, lang=lang)).json()
-                common.logger.info(f"lang={lang}, {len(directory.get('landmarks', []))} landmarks, {len(directory.get('sections', []))} sections")
-                self.directory[lang] = directory
+        for retry in range(60):
+            try:
+                self.config = requests.get(self.CONFIG_URL).json()
+                common.logger.info(f"config={self.config}")
+                initial_location = self.config.get('INITIAL_LOCATION', {})
+                dist = self.config.get('MAX_RADIUS')
+                lat = initial_location.get('lat')
+                lng = initial_location.get('lng')
+                if dist and lat and lng:
+                    self.landmarks = requests.get(self.START_URL.format(lat=lat, lng=lng, dist=dist)).json()
+                    self.features = requests.get(self.FEATURES_URL).json()
+                    common.logger.info(f"{len(self.features)} features")
+                    self.tour_data = requests.get(self.TOURDATA_URL).json()
+                    common.logger.info(f"{len(self.tour_data.get('tours', []))} tours, {len(self.tour_data.get('destinations', []))} destinations")
+                    for lang in ['ja', 'en', 'zh-CN']:
+                        directory = requests.get(self.DIRECTORY_URL.format(lat=lat, lng=lng, dist=dist, lang=lang)).json()
+                        common.logger.info(f"lang={lang}, {len(directory.get('landmarks', []))} landmarks, {len(directory.get('sections', []))} sections")
+                        self.directory[lang] = directory
+                    return
+            except Exception as e:
+                common.logger.warning(f"TourManager background_task retry {retry}: {e}")
+            time.sleep(5)
 
     def load(self):
         threading.Thread(target=self.background_task).start()
