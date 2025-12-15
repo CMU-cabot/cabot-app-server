@@ -21,7 +21,6 @@
  *******************************************************************************/
 
 const urlParams = new URLSearchParams(window.location.search);
-const debug_mode = urlParams.get('debug') == 'true';
 let directory_data = {};
 let node_names = {};
 let tour_names = {};
@@ -536,7 +535,7 @@ function handle_last_data() {
             replaceHTML('temperature', renderTemperature(data));
             replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
             replaceText('tour_name', get_current_tourname(data));
-            if (debug_mode && !document.getElementById('pause_debug_update').checked) {
+            if (document.getElementById('debug-info').style.display != 'none' && !document.getElementById('pause_debug_update').checked) {
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
             }
             const voicerate = data['share.ChangeUserVoiceRate']?.at(-1);
@@ -617,9 +616,50 @@ function handle_custom_image() {
         .catch(error => console.error('Error:', error));
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+function init_selector() {
+    const button = document.getElementById('selector-btn');
+    const container = document.getElementById('selector-container');
+    const backdrop = document.getElementById('selector-backdrop');
 
-    document.getElementById('debug-info').style.display = debug_mode ? 'block' : 'none';
+    button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = container.classList.toggle('open');
+        backdrop.style.display = open ? 'block' : 'none';
+    });
+
+    backdrop.addEventListener('click', () => {
+        container.classList.remove('open');
+        backdrop.style.display = 'none';
+    });
+
+    container.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    document.querySelectorAll("#settings-container > fieldset").forEach(el => {
+        const legend = el.querySelector('legend');
+        if (!legend) return;
+
+        const title = legend.textContent;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = el.style.display !== 'none';
+
+        checkbox.addEventListener('change', () => {
+            el.style.display = checkbox.checked ? 'block' : 'none';
+        });
+
+        const label = document.createElement('label');
+        label.style.display = 'block';
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(` ${title}`));
+        container.appendChild(label);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
 
     add_destination_dialog = document.getElementById('add_destination_dialog');
     add_destination_dialog.addEventListener('close', add_destination_close);
@@ -644,4 +684,6 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Error:', error);
             alert(`地図データの取得に失敗しました。Error: ${error}`);
         });
+
+    init_selector();
 });

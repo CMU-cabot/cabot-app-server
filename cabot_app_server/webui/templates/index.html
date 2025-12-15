@@ -30,22 +30,30 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
 </head>
 
 <body>
+    <div id="selector-wrapper">
+        <button id="selector-btn">表示項目を選択</button>
+        <div id="selector-container"></div>
+    </div>
+    <div id="selector-backdrop"></div>
     <div id="cabot_name">未接続</div>
     <div id="settings-container">
         <fieldset>
             <legend>スーツケース操作</legend>
             <fieldset data-userapp="OK">
                 <legend>ハンドル設定</legend>
-                <button data-handleside="left" onclick="share({type: 'ChangeHandleSide', value: 'left'});manage('handleside-left')">左手持ち</button>
+                <button data-handleside="left"
+                    onclick="share({type: 'ChangeHandleSide', value: 'left'});manage('handleside-left')">左手持ち</button>
                 <button data-handleside="right"
                     onclick="share({type: 'ChangeHandleSide', value: 'right'});manage('handleside-right')">右手持ち</button>
             </fieldset>
             <fieldset data-userapp="OK">
                 <legend>タッチ設定</legend>
-                <button data-touchmode="cap" onclick="share({type: 'ChangeTouchMode', value: 'cap'});manage('touchmode-cap')">静電容量</button>
+                <button data-touchmode="cap"
+                    onclick="share({type: 'ChangeTouchMode', value: 'cap'});manage('touchmode-cap')">静電容量</button>
                 <button data-touchmode="tof"
                     onclick="share({type: 'ChangeTouchMode', value: 'tof'});manage('touchmode-tof')">距離センサー(ToF)</button>
-                <button data-touchmode="dual" onclick="share({type: 'ChangeTouchMode', value: 'dual'});manage('touchmode-dual')">両方</button>
+                <button data-touchmode="dual"
+                    onclick="share({type: 'ChangeTouchMode', value: 'dual'});manage('touchmode-dual')">両方</button>
             </fieldset>
             <fieldset data-system="Active">
                 <legend>ハンドル操作</legend>
@@ -166,7 +174,7 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
                     onclick="generic_confirm('GNSSをリセットします', 'GNSSのリセット', 'キャンセル', 'manage', 'reset_gnss')">GNSSのリセット</button>
             </div>
         </fieldset>
-        <fieldset id="debug-info" class="full-width">
+        <fieldset id="debug-info" style="display: none;" class="full-width">
             <legend>デバッグ</legend>
             <label><input type="checkbox" id="pause_debug_update" /> 自動更新停止</label>
             <pre id="messages"></pre>
