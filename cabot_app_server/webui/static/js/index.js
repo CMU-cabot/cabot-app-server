@@ -593,6 +593,9 @@ function handle_last_data() {
 }
 
 function handle_camera_image() {
+    if (document.getElementById('image-items').style.display == 'none') {
+        return;
+    }
     fetch('/camera_image/', {})
         .then(response => response.json())
         .then(data => {
@@ -606,6 +609,9 @@ function handle_camera_image() {
 }
 
 function handle_custom_image() {
+    if (document.getElementById('image-items').style.display == 'none') {
+        return;
+    }
     fetch('/custom_image/', {})
         .then(response => response.json())
         .then(data => {
