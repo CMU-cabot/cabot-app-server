@@ -683,7 +683,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             directory_data = data;
             __debug__.data_timer = setInterval(handle_last_data, 1000);
-            __debug__.camera_timer = setInterval(handle_camera_image, 1000);
+            __debug__.camera_timer = setInterval(handle_camera_image, 2000);
             __debug__.image_timer = setInterval(handle_custom_image, 1000);
         })
         .catch(error => {
