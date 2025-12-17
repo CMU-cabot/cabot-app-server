@@ -588,8 +588,12 @@ function handle_last_data() {
                 restart_localization.textContent = text;
                 restart_localization.disabled = localize_status != 2;
             }
+            document.body.classList.remove('disabled');
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            document.body.classList.add('disabled');
+        });
 
 }
 
