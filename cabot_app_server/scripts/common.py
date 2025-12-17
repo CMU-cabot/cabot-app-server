@@ -455,6 +455,7 @@ class EventChars(BLENotifyChar):
             logger.error("cabot event %s cannot be parsed", msg['data'])
             return
 
+        self.handleAnyEventCallback(request_id, event)
         if event.type != NavigationEvent.TYPE:
             return
 
@@ -470,6 +471,9 @@ class EventChars(BLENotifyChar):
         }
         jsonText = json.dumps(req, separators=(',', ':'))
         self.send_text(self.navi_uuid, jsonText)
+
+    def handleAnyEventCallback(self, request_id, event):
+        pass
 
 
 class TouchChars(BLENotifyChar):

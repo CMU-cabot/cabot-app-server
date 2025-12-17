@@ -54,6 +54,7 @@ class WebUI:
 
     TIMESTAMP_HISTORY_EVENTS = {
         'destination',
+        'button',
     }
 
     IGNORE_EVENTS = {'req_version', 'req_name', 'heartbeat', 'camera_image_request', 'camera_image', 'camera_orientation'}
@@ -132,6 +133,7 @@ class WebUI:
         # Socket.IO Wrappers
         original_emit = sio.emit
         original_handler = sio._handle_event_internal
+        original_event_char_callback = server.event_char.handleAnyEventCallback
 
         def emit_wrap(event, data=None, to=None, **kw):
             self._track_event(event, data, emit=True)
@@ -147,8 +149,32 @@ class WebUI:
 
             return original_handler(server, sid, eio_sid, raw_data, namespace, id)
 
+        def event_char_wrap(request_id, event):
+            if event.type == 'click':
+                self._track_event(
+                    'button',
+                    {
+                        'type': event.type,
+                        'request_id': request_id,
+                        'buttons': event.buttons,
+                        'count': event.count,
+                    },
+                )
+            elif event.type == 'holddown':
+                self._track_event(
+                    'button',
+                    {
+                        'type': event.type,
+                        'request_id': request_id,
+                        'holddown': event.holddown,
+                        'duration': event.duration,
+                    },
+                )
+            return original_event_char_callback(request_id, event)
+
         sio.emit = emit_wrap
         sio._handle_event_internal = handler_wrap
+        server.event_char.handleAnyEventCallback = event_char_wrap
 
         self.tour_manager.load()
         common.logger.info("WebUI listening...")
@@ -228,7 +254,7 @@ class WebUI:
             lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': data})
             self.last_data[event] = lst[-10:]
             return
-        
+
         if event not in self.IGNORE_EVENTS:
             common.logger.info(f"[IGNORE handle_event] event={event}, data={data}")
             self.last_data[f'___{event}___'] = [data]
