@@ -35,6 +35,7 @@ let current_userapp_level = '';
 let current_system_level = '';
 let add_destination_dialog;
 let generic_confirm_dialog;
+let diagnostics_level = -1;
 
 function post_data(url, body) {
     fetch(url, {
@@ -210,6 +211,10 @@ function renderCurrentDestinations(data) {
     const tour = data['share.Tour']?.at(-1);
     let skip = true;
     if (tour) {
+        const tour_name = get_current_tourname(data);
+        if (tour_name) {
+            html += `<div class="tour-name">ツアー：${tour_name}</div>`;
+        }
         if (tour.currentDestination) {
             const name = destination_name(tour.currentDestination);
             html += `<div class="current-destination">${name} <button onclick="skip('${tour.currentDestination}')">スキップ</button></div>`;
@@ -278,6 +283,7 @@ function renderSystemStatus(data) {
         a.name.localeCompare(b.name)
     );
     for (const diag of sorted) {
+        diagnostics_level = Math.max(diagnostics_level, diag.level);
         if (diag.name == '/CaBot' || diag.level > 1) {
             html += '<table>';
             html += `<thead><tr><td>${diag.name}</td><td>${diag.message}</td></tr></thead>`;
@@ -302,6 +308,8 @@ function renderTemperature(data) {
             const temperature = parseFloat(device.message) || 0;
             const percent = Math.min(Math.max(temperature - 10, 0), 50) / 50 * 100;
             const cls = device.level?.toLowerCase() || '';
+            const level = ['ok', 'warning', 'error'].indexOf(cls);
+            diagnostics_level = Math.max(diagnostics_level, level);
             html += `
                 <tr>
                     <td>${device.model.replaceAll('_', ' ')}</td>
@@ -321,7 +329,9 @@ function renderBattery(data) {
     let html = '<table><tbody>';
     for (const battery of data.battery_status?.at(-1)?.values ?? []) {
         const percent = parseFloat(battery.value) || 0;
-        const cls = percent <= 10 ? 'error' : percent <= 20 ? 'warning' : '';
+        const level = percent <= 10 ? 2 : percent <= 20 ? 1 : 0;
+        diagnostics_level = Math.max(diagnostics_level, level);
+        const cls = ['', 'warning', 'error'][level];
         html += `
             <tr>
                 <td>${battery.key}</td>
@@ -372,6 +382,26 @@ function renderTouchLevel(data) {
         </div>
     `;
     return html;
+}
+
+function renderDiagnosticsLevel() {
+    let percent = 0;
+    let cls = '';
+    let text = 'なし';
+    if (diagnostics_level >= 0) {
+        percent = 100;
+        text = '正常';
+        if (diagnostics_level >= 1) {
+            text = '要確認';
+            cls = diagnostics_level >= 2 ? 'error' : 'warning';
+        }
+    }
+    return `
+        <div class="bar-container">
+            <div class="bar-fill ${cls}" style="width:${percent}%"></div>
+            <span class="bar-label">${text}</span>
+        </div>
+    `;
 }
 
 function build_index() {
@@ -486,9 +516,12 @@ function set_disabled(userapp_level, system_level) {
                 e.disabled = disabled;
             });
         });
-        const el = document.getElementById('user_app_status');
-        el.textContent = userapp_level == 'OK' ? '接続中' : '接続されていません';
-        el.style.background = userapp_level == 'OK' ? '#66BB6A' : '#EF5350';
+        document.getElementById('user_app_status').innerHTML = `
+            <div class="bar-container">
+                <div class="bar-fill ${userapp_level == 'OK' ? '' : 'error'}" style="width:100%"></div>
+                <span class="bar-label">${userapp_level == 'OK' ? '接続中' : '接続されていません'}</span>
+            </div>
+        `;
     }
     if (system_level != undefined) {
         document.querySelectorAll('[data-system]').forEach(el => {
@@ -526,6 +559,7 @@ function handle_last_data() {
                 replaceHTML('destinations', renderSections(directory_data.sections[current_lang]));
                 replaceHTML('tours', renderTours(directory_data.tours));
             }
+            diagnostics_level = -1;
             replaceHTML('speak_histories', renderSpeakHistories(data));
             replaceHTML('chat_histories', renderChatHistories(data));
             replaceHTML('navigation_histories', renderDestinationHistories(data));
@@ -535,7 +569,7 @@ function handle_last_data() {
             replaceHTML('battery', renderBattery(data));
             replaceHTML('temperature', renderTemperature(data));
             replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
-            replaceText('tour_name', get_current_tourname(data));
+            replaceHTML('diagnostics_level', renderDiagnosticsLevel());
             if (document.getElementById('debug-info').style.display != 'none' && !document.getElementById('pause_debug_update').checked) {
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
             }

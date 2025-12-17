@@ -230,6 +230,10 @@ table td {
 }
 
 table td:first-child {
+  min-width: 122px;
+}
+
+#system_info table td:first-child {
   min-width: 165px;
 }
 

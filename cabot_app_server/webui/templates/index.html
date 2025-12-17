@@ -40,8 +40,9 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
         <fieldset id="image-items" data-system="Active" class="span2">
             <legend>カメラとマップ</legend>
             <div>
-                <img id="camera_left_image" class="camera_image"><div class="camera-gap"></div><img id="camera_center_image"
-                    class="camera_image center_image"><div class="camera-gap"></div><img id="camera_right_image" class="camera_image">
+                <img id="camera_left_image" class="camera_image">
+                <div class="camera-gap"></div><img id="camera_center_image" class="camera_image center_image">
+                <div class="camera-gap"></div><img id="camera_right_image" class="camera_image">
             </div>
             <div>
                 <img id="custom_image">
@@ -52,6 +53,32 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
                 <button
                     onclick="generic_confirm('GNSSをリセットします', 'GNSSのリセット', 'キャンセル', 'manage', 'reset_gnss')">GNSSのリセット</button>
             </div>
+        </fieldset>
+        <fieldset>
+            <legend>スーツケース情報</legend>
+            <fieldset>
+                <legend>ステータス</legend>
+                <table>
+                    <tbody>
+                        <tr><td>ユーザーアプリ</td><td id="user_app_status"></td></tr>
+                        <tr><td>診断情報</td><td id="diagnostics_level"></td></tr>
+                        <tr><td>タッチ状態</td><td id="touch_level"></td></tr>
+                    </tbody>
+                </table>
+                <div id="user_app_status"></div>
+            </fieldset>
+            <fieldset data-userapp="OK">
+                <legend>行き先</legend>
+                <div id="current_destinations"></div>
+            </fieldset>
+            <fieldset data-userapp="OK">
+                <legend>ナビゲーション履歴</legend>
+                <div id="navigation_histories"></div>
+            </fieldset>
+            <fieldset data-userapp="OK">
+                <legend>読み上げ履歴</legend>
+                <div id="speak_histories"></div>
+            </fieldset>
         </fieldset>
         <fieldset>
             <legend>スーツケース操作</legend>
@@ -70,6 +97,27 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
                     onclick="share({type: 'ChangeTouchMode', value: 'tof'});manage('touchmode-tof')">距離センサー(ToF)</button>
                 <button data-touchmode="dual"
                     onclick="share({type: 'ChangeTouchMode', value: 'dual'});manage('touchmode-dual')">両方</button>
+            </fieldset>
+            <fieldset data-userapp="OK">
+                <legend>ユーザー言語</legend>
+                <button data-language="ja" onclick="share({type: 'ChangeLanguage', value: 'ja'})">日本語</button>
+                <button data-language="en" onclick="share({type: 'ChangeLanguage', value: 'en'})">英語</button>
+                <button data-language="zh-CN" onclick="share({type: 'ChangeLanguage', value: 'zh-Hans'})">中国語</button>
+            </fieldset>
+            <fieldset data-userapp="OK">
+                <legend>テキスト読み上げ</legend>
+                <button data-voicerate="very-slow"
+                    onclick="share({type: 'ChangeUserVoiceRate', value: '0.2'})">とても遅い</button>
+                <button data-voicerate="slow" onclick="share({type: 'ChangeUserVoiceRate', value: '0.35'})">遅い</button>
+                <button data-voicerate="normal" onclick="share({type: 'ChangeUserVoiceRate', value: '0.5'})">普通</button>
+                <button data-voicerate="fast" onclick="share({type: 'ChangeUserVoiceRate', value: '0.6'})">速い</button>
+                <button data-voicerate="very-fast"
+                    onclick="share({type: 'ChangeUserVoiceRate', value: '0.7'})">とても速い</button>
+                <button data-voicerate="super-fast"
+                    onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">超高速</button>
+                <div class="separator2"></div>
+                <input type="text" id="speak_text" value="" size="37" placeholder="入力してください" />
+                <button onclick="speak_text()">読み上げ</button>
             </fieldset>
             <fieldset data-system="Active">
                 <legend>ハンドル操作</legend>
@@ -94,52 +142,13 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
                     onclick="generic_confirm('緊急停止を解除します。ハンドルから手を必ず離してください。', '緊急停止を解除', 'キャンセル', 'manage', 'release_emergencystop')">緊急停止を解除</button>
             </fieldset>
         </fieldset>
-        <fieldset>
-            <legend>システム情報</legend>
-            <fieldset>
-                <legend>ユーザーアプリ</legend>
-                <div id="user_app_status"></div>
-            </fieldset>
-            <fieldset>
-                <legend>タッチ状態</legend>
-                <div id="touch_level"></div>
-            </fieldset>
-            <fieldset>
-                <legend>バッテリー残量</legend>
-                <div id="battery"></div>
-            </fieldset>
-            <fieldset>
-                <legend>温度</legend>
-                <div id="temperature"></div>
-            </fieldset>
-            <fieldset>
-                <legend>診断情報</legend>
-                <div id="system_info"></div>
-            </fieldset>
-        </fieldset>
         <fieldset data-userapp="OK">
-            <legend>言語とテキスト読み上げ</legend>
-            <button data-language="ja" onclick="share({type: 'ChangeLanguage', value: 'ja'})">日本語</button>
-            <button data-language="en" onclick="share({type: 'ChangeLanguage', value: 'en'})">英語</button>
-            <button data-language="zh-CN" onclick="share({type: 'ChangeLanguage', value: 'zh-Hans'})">中国語</button>
-            <div class="separator2"></div>
-            <button data-voicerate="very-slow"
-                onclick="share({type: 'ChangeUserVoiceRate', value: '0.2'})">とても遅い</button>
-            <button data-voicerate="slow" onclick="share({type: 'ChangeUserVoiceRate', value: '0.35'})">遅い</button>
-            <button data-voicerate="normal" onclick="share({type: 'ChangeUserVoiceRate', value: '0.5'})">普通</button>
-            <button data-voicerate="fast" onclick="share({type: 'ChangeUserVoiceRate', value: '0.6'})">速い</button>
-            <button data-voicerate="very-fast"
-                onclick="share({type: 'ChangeUserVoiceRate', value: '0.7'})">とても速い</button>
-            <button data-voicerate="super-fast"
-                onclick="share({type: 'ChangeUserVoiceRate', value: '0.8'})">超高速</button>
-            <div class="separator2"></div>
-            <input type="text" id="speak_text" value="" size="40" placeholder="入力してください" />
-            <button onclick="speak_text()">読み上げ</button>
-            <div class="separator2"></div>
+            <legend>ツアーや行き先を選択</legend>
             <fieldset>
-                <legend>読み上げ履歴</legend>
-                <div id="speak_histories"></div>
+                <legend>ツアーを選択</legend>
+                <div id="tours"></div>
             </fieldset>
+            <div id="destinations"></div>
         </fieldset>
         <fieldset data-userapp="OK">
             <legend>対話</legend>
@@ -151,28 +160,20 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
                 <div id="chat_histories" class="chat-container"></div>
             </fieldset>
         </fieldset>
-        <fieldset data-userapp="OK">
-            <legend>ナビゲーション履歴と今後の行き先</legend>
+        <fieldset>
+            <legend>診断情報</legend>
             <fieldset>
-                <legend>履歴</legend>
-                <div id="navigation_histories"></div>
+                <legend>バッテリー残量</legend>
+                <div id="battery"></div>
             </fieldset>
             <fieldset>
-                <legend>ツアー名</legend>
-                <div id="tour_name"></div>
+                <legend>温度</legend>
+                <div id="temperature"></div>
             </fieldset>
             <fieldset>
-                <legend>行き先</legend>
-                <div id="current_destinations"></div>
+                <legend>ステータス</legend>
+                <div id="system_info"></div>
             </fieldset>
-        </fieldset>
-        <fieldset data-userapp="OK">
-            <legend>ツアーや行き先を選択</legend>
-            <fieldset>
-                <legend>ツアーを選択</legend>
-                <div id="tours"></div>
-            </fieldset>
-            <div id="destinations"></div>
         </fieldset>
         <fieldset id="debug-info" style="display: none;" class="full-width">
             <legend>デバッグ</legend>
