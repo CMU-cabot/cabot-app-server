@@ -254,6 +254,32 @@ function renderChatHistories(data) {
     return html;
 }
 
+function renderButtonHistories(data) {
+    let html = "";
+    const button_names = ['上', '下', '左', '右'];
+    for (const button of data.button ?? []) {
+        const bd = button.data;
+        let text;
+        if (bd.type == 'click') {
+            text = `${button_names[bd.buttons-1]}ボタン`;
+            if (bd.count == 1) {
+                text += `クリック`;
+            } else if (bd.count == 2) {
+                text += `ダブルクリック`;
+            } else if (bd.count >= 3) {
+                text += `トリプルクリック`;
+            }
+        } else if (bd.type == 'holddown') {
+            text = `${button_names[bd.holddown-1]}ボタン長押し`;
+            if (bd.duration > 1) {
+                text += ` ${bd.duration}秒`;
+            }
+        }
+        html += `<div>${new Date(button.timestamp).toLocaleTimeString()} : ${text}</div>`;
+    }
+    return html;
+}
+
 function renderDestinationHistories(data) {
     let html = "";
     const arr = data.destination ?? [];
@@ -562,6 +588,7 @@ function handle_last_data() {
             diagnostics_level = -1;
             replaceHTML('speak_histories', renderSpeakHistories(data));
             replaceHTML('chat_histories', renderChatHistories(data));
+            replaceHTML('button_histories', renderButtonHistories(data));
             replaceHTML('navigation_histories', renderDestinationHistories(data));
             replaceHTML('current_destinations', renderCurrentDestinations(data));
             replaceHTML('system_info', renderSystemStatus(data));
