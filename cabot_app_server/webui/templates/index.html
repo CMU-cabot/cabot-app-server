@@ -37,6 +37,22 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
     <div id="selector-backdrop"></div>
     <div id="cabot_name">未接続</div>
     <div id="settings-container">
+        <fieldset id="image-items" data-system="Active" class="span2">
+            <legend>カメラとマップ</legend>
+            <div>
+                <img id="camera_left_image" class="camera_image"><div class="camera-gap"></div><img id="camera_center_image"
+                    class="camera_image center_image"><div class="camera-gap"></div><img id="camera_right_image" class="camera_image">
+            </div>
+            <div>
+                <img id="custom_image">
+            </div>
+            <div class="rosmap-buttons">
+                <button id="restart_localization"
+                    onclick="generic_confirm('位置推定が再試行されます。必ずロボットが停止した状態で行ってください。', '位置推定の再試行', 'キャンセル', 'manage', 'restart_localization')">位置推定の再試行</button>
+                <button
+                    onclick="generic_confirm('GNSSをリセットします', 'GNSSのリセット', 'キャンセル', 'manage', 'reset_gnss')">GNSSのリセット</button>
+            </div>
+        </fieldset>
         <fieldset>
             <legend>スーツケース操作</legend>
             <fieldset data-userapp="OK">
@@ -157,22 +173,6 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
                 <div id="tours"></div>
             </fieldset>
             <div id="destinations"></div>
-        </fieldset>
-        <fieldset id="image-items" data-system="Active" class="full-width">
-            <legend>カメラとマップ</legend>
-            <div>
-                <img id="camera_left_image" class="camera_image"><img id="camera_center_image"
-                    class="camera_image center_image"><img id="camera_right_image" class="camera_image">
-            </div>
-            <div>
-                <img id="custom_image">
-            </div>
-            <div class="rosmap-buttons">
-                <button id="restart_localization"
-                    onclick="generic_confirm('位置推定が再試行されます。必ずロボットが停止した状態で行ってください。', '位置推定の再試行', 'キャンセル', 'manage', 'restart_localization')">位置推定の再試行</button>
-                <button
-                    onclick="generic_confirm('GNSSをリセットします', 'GNSSのリセット', 'キャンセル', 'manage', 'reset_gnss')">GNSSのリセット</button>
-            </div>
         </fieldset>
         <fieldset id="debug-info" style="display: none;" class="full-width">
             <legend>デバッグ</legend>

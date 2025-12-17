@@ -212,15 +212,16 @@ function renderCurrentDestinations(data) {
     if (tour) {
         if (tour.currentDestination) {
             const name = destination_name(tour.currentDestination);
-            html += `<div>${name} <button onclick="skip('${tour.currentDestination}')">スキップ</button></div>`;
+            html += `<div class="current-destination">${name} <button onclick="skip('${tour.currentDestination}')">スキップ</button></div>`;
             skip = false;
         }
         for (const destination of tour.destinations ?? []) {
             const name = destination_name(destination);
-            html += `<div>${name}`;
             if (skip) {
-                html += ` <button onclick="skip('${destination}')">スキップ</button>`;
+                html += `<div class="next-destination">${name} <button onclick="skip('${destination}')">スキップ</button>`;
                 skip = false;
+            } else {
+                html += `<div>${name}`;
             }
             html += '</div>';
         }
@@ -234,8 +235,8 @@ function renderCurrentDestinations(data) {
 
 function renderSpeakHistories(data) {
     let html = '';
-    for (const text of data['share.Speak'] ?? []) {
-        html += `<div>${text}</div>`;
+    for (const obj of data['share.Speak'] ?? []) {
+        html += `<div>${new Date(obj.timestamp).toLocaleTimeString()} : ${obj.data}</div>`;
     }
     return html;
 }
@@ -254,18 +255,18 @@ function renderDestinationHistories(data) {
     const destinations = arr.filter((v, i) => v !== arr[i - 1]);
     for (const destination of destinations) {
         let name
-        switch (destination) {
+        switch (destination.data) {
             case '__arrived__':
-                name = '到着済み';
+                name = '到着';
                 break;
             case '__cancel__':
-                name = 'キャンセル済み';
+                name = 'キャンセル';
                 break;
             default:
-                name = destination_name(destination);
+                name = `${destination_name(destination.data)}に移動`;
                 break;
         }
-        html += `<div>${name}</div>`;
+        html += `<div>${new Date(destination.timestamp).toLocaleTimeString()} : ${name}</div>`;
     }
     return html;
 }

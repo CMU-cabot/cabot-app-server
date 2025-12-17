@@ -27,6 +27,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+button {
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #f2f2f2;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+button.selected {
+  background: #0078ff;
+  color: #fff;
+  border-color: #0060d1;
+  cursor: unset;
+}
+
 dialog {
   font-size: 16px;
   border-radius: 6px;
@@ -48,25 +63,43 @@ dialog {
   grid-column: 1 / -1;
 }
 
+.span2 {
+  grid-column: span 2;
+  /* width: 150%; */
+}
+
 .break {
   grid-column: 1 / -1;
   height: 0;
 }
 
+#image-items {
+  text-align: center;
+}
+
 .camera_image {
-  width: 256px;
+  width: 33%;
+  max-width: 240px;
 }
 
-.center_image {
-  margin: 0px 4px
+/* .center_image {
+  margin: 0px 0.5%;
+} */
+
+.camera-gap {
+  display: inline-block;
+  width: 0.5%;
+  max-width: 4px;
 }
 
-#custom_image {
-  width: 776px;
+#custom_image,
+.rosmap-buttons {
+  width: 100%;
+  max-width: 728px;
 }
 
 .rosmap-buttons {
-  width: 608px;
+  display: inline-block;
   text-align: center;
 }
 
@@ -135,20 +168,6 @@ div.separator {
 
 div.separator2 {
   margin-bottom: 12px;
-}
-
-button {
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background: #f2f2f2;
-  cursor: pointer;
-}
-
-button.selected {
-  background: #0078ff;
-  color: #fff;
-  border-color: #0060d1;
-  cursor: unset;
 }
 
 .disabled {
@@ -271,10 +290,19 @@ legend[onclick]:hover {
   text-align: left;
 }
 
-#selector-container > label {
+#selector-container>label {
   display: block;
 }
 
 #selector-container.open {
   display: block;
+}
+
+.current-destination {
+  font-weight: bold;
+  color: #d9534f;
+}
+
+.next-destination {
+  font-weight: bold;
 }

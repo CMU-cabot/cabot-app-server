@@ -25,6 +25,7 @@ import json
 import re
 import socketio
 from collections import defaultdict
+from datetime import datetime, timezone
 from flask import Flask, Response, jsonify, render_template, request
 import common
 import tcp
@@ -45,11 +46,14 @@ class WebUI:
 
     SIMPLE_HISTORY_EVENTS = {
         'touch',
-        'destination',
         'manage_cabot',
         'navigate',
         'speak',
         'log',
+    }
+
+    TIMESTAMP_HISTORY_EVENTS = {
+        'destination',
     }
 
     IGNORE_EVENTS = {'req_version', 'req_name', 'heartbeat', 'camera_image_request', 'camera_image', 'camera_orientation'}
@@ -155,11 +159,6 @@ class WebUI:
         m = re.search(r" (.*) compressed", msg.format)
         return f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}"
 
-    def append_history(self, key, value):
-        history = self.last_data[key]
-        history.append(value)
-        self.last_data[key] = history[-10:]
-
     def _track_event(self, event, data, emit=False):
         if isinstance(data, list) and len(data) == 1:
             data = data[0]
@@ -169,7 +168,8 @@ class WebUI:
             pass
 
         if event == 'navigate' and data.get('type') == 'arrived':
-            self.last_data['destination'].append('__arrived__')
+            # self.last_data['destination'].append('__arrived__')
+            self.last_data['destination'].append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': '__arrived__'})
 
         if event == 'share':
             if not isinstance(data, dict):
@@ -183,7 +183,8 @@ class WebUI:
             if event_type == 'share.Speak':
                 if isinstance(value, str) and value and not emit:
                     lst = self.last_data[event_type]
-                    lst.append(value)
+                    # lst.append(value)
+                    lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': value})
                     self.last_data[event_type] = lst[-10:]
                 return
 
@@ -222,6 +223,12 @@ class WebUI:
             self.last_data[event] = lst[-10:]
             return
 
+        if event in self.TIMESTAMP_HISTORY_EVENTS:
+            lst = self.last_data[event]
+            lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': data})
+            self.last_data[event] = lst[-10:]
+            return
+        
         if event not in self.IGNORE_EVENTS:
             common.logger.info(f"[IGNORE handle_event] event={event}, data={data}")
             self.last_data[f'___{event}___'] = [data]
