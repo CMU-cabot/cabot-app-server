@@ -256,7 +256,7 @@ function renderChatHistories(data) {
 
 function renderButtonHistories(data) {
     let html = "";
-    const button_names = ['上', '下', '左', '右'];
+    const button_names = ['上', '下', '左', '右', '中央'];
     for (const button of data.button ?? []) {
         const bd = button.data;
         let text;
