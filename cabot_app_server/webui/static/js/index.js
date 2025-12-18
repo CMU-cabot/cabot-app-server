@@ -402,14 +402,20 @@ function renderSpeedLevel(data) {
     const level = data.average_speed?.at(-1) ?? -1
     let percent = Math.max(level * 100, 0);
     let text = level < 0 ? '未検出' : level == 0 ? '停止中' : `${level.toFixed(3)}`;
+    let cls = '';
     if (!last_stop_time || level != 0) {
         last_stop_time = new Date();
     } else if (level == 0) {
-        text += `（${Math.floor((new Date() - last_stop_time) / 1000)}秒）`;
+        const elapsed = Math.floor((new Date() - last_stop_time) / 1000);
+        text += `（${elapsed}秒）`;
+        if (elapsed > 30) {
+            cls = 'warning';
+            percent = Math.min(100, elapsed - 20);
+        }
     }
     return `
         <div class="bar-container">
-            <div class="bar-fill " style="width:${percent}%"></div>
+            <div class="bar-fill ${cls}" style="width:${percent}%"></div>
             <span class="bar-label">${text}</span>
         </div>
     `;
