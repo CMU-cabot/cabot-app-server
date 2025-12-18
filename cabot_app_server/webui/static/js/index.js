@@ -217,7 +217,7 @@ function renderCurrentDestinations(data) {
         }
         if (tour.currentDestination) {
             const name = destination_name(tour.currentDestination);
-            html += `<div class="current-destination">${name} <button onclick="skip('${tour.currentDestination}')">スキップ</button></div>`;
+            html += `<div class="current-destination">${name}に移動中 <button onclick="skip('${tour.currentDestination}')">スキップ</button></div>`;
             skip = false;
         }
         for (const destination of tour.destinations ?? []) {
