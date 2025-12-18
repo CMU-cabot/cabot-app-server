@@ -36,6 +36,7 @@ let current_system_level = '';
 let add_destination_dialog;
 let generic_confirm_dialog;
 let diagnostics_level = -1;
+let last_stop_time;
 
 function post_data(url, body) {
     fetch(url, {
@@ -401,6 +402,11 @@ function renderSpeedLevel(data) {
     const level = data.average_speed?.at(-1) ?? -1
     let percent = Math.max(level * 100, 0);
     let text = level < 0 ? '未検出' : level == 0 ? '停止中' : `${level.toFixed(3)}`;
+    if (!last_stop_time || level != 0) {
+        last_stop_time = new Date();
+    } else if (level == 0) {
+        text += `（${Math.floor((new Date() - last_stop_time) / 1000)}秒）`;
+    }
     return `
         <div class="bar-container">
             <div class="bar-fill " style="width:${percent}%"></div>
