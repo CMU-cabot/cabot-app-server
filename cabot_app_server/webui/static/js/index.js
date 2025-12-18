@@ -409,6 +409,19 @@ function renderSpeedLevel(data) {
     `;
 }
 
+function renderImuData(data, type, warning_level = 10, error_level = 30) {
+    const level = (data.imu_data?.at(-1) ?? {})[type] ?? -1;
+    let percent = Math.max(level * 100 / 90, 0);
+    let text = level < 0 ? '未検出' : `${level.toFixed(1)}°`;
+    let cls = level < warning_level ? '' : level < error_level ? 'warning' : 'error';
+    return `
+        <div class="bar-container">
+            <div class="bar-fill ${cls}" style="width:${percent}%"></div>
+            <span class="bar-label">${text}</span>
+        </div>
+    `;
+}
+
 function renderDiagnosticsLevel() {
     let percent = 0;
     let cls = '';
@@ -596,6 +609,8 @@ function handle_last_data() {
             replaceHTML('temperature', renderTemperature(data));
             replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
             replaceHTML('diagnostics_level', renderDiagnosticsLevel());
+            replaceHTML('pitch_level', renderImuData(data, 'pitch'));
+            replaceHTML('roll_level', renderImuData(data, 'roll'));
             if (document.getElementById('debug-info').style.display != 'none' && !document.getElementById('pause_debug_update').checked) {
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
             }

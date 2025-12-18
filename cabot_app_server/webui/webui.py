@@ -22,11 +22,13 @@
 
 import base64
 import json
+import math
 import re
 import socketio
 from collections import defaultdict
 from datetime import datetime, timezone
 from flask import Flask, Response, jsonify, render_template, request
+from tf_transformations import euler_from_quaternion
 import common
 import tcp
 import tour_manager
@@ -81,6 +83,19 @@ class WebUI:
             self.last_data['average_touch'] = [sum(abs(obj.data) for obj in touch_buffer) / len(touch_buffer) if touch_buffer else -1]
             self.last_data['average_speed'] = [sum(abs(obj.linear.x) for obj in cmd_vel_buffer) / len(cmd_vel_buffer) if cmd_vel_buffer else -1]
             self.last_data['localize_status'] = [common.last_localize_status]
+            msg, common.last_imu_data = common.last_imu_data, None
+            if msg is None:
+                self.last_data.pop('imu_data', None)
+            else:
+                roll, pitch, yaw = euler_from_quaternion(
+                    (
+                        msg.orientation.x,
+                        msg.orientation.y,
+                        msg.orientation.z,
+                        msg.orientation.w,
+                    )
+                )
+                self.last_data['imu_data'] = [{'roll': abs(math.degrees(roll)), 'pitch': abs(math.degrees(pitch))}]
             key = request.args.get('key')
             return jsonify({key: self.last_data.get(key, [])}) if key else jsonify(self.last_data)
 

@@ -39,7 +39,7 @@ from rclpy.time import Time
 from std_msgs.msg import String, Int16
 from diagnostic_msgs.msg import DiagnosticArray
 from rosidl_runtime_py.convert import message_to_ordereddict
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import CompressedImage, Imu
 from tf_transformations import euler_from_quaternion
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
@@ -89,6 +89,7 @@ last_camera_right_orientation: Quaternion = None
 last_location: PoseLog2 = None
 last_rosmap_image: CompressedImage = None
 last_localize_status = MFLocalizeStatus.UNKNOWN
+last_imu_data: Imu = None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -688,6 +689,7 @@ class CabotNode_Sub(Node):
         self.rosmap_image_sub = self.create_subscription(CompressedImage, '/rosmap_image/compressed', self.rosmap_image_callback, 10)
         self.localize_status_sub = self.create_subscription(MFLocalizeStatus, "/localize_status", self.localize_status_callback, 10)
         self.cmd_vel_sub = self.create_subscription(Twist, '/cabot/cmd_vel', self.cmd_vel_callback, 10)
+        self.imu_sub = self.create_subscription(Imu, '/cabot/imu/data', self.imu_callback, 10)
 
 
 
@@ -767,6 +769,10 @@ class CabotNode_Sub(Node):
     def localize_status_callback(self, msg):
         global last_localize_status
         last_localize_status = msg.status
+
+    def imu_callback(self, msg):
+        global last_imu_data
+        last_imu_data = msg
 
 
 class CabotNode_Common():
