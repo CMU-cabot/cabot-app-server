@@ -408,9 +408,10 @@ function renderSpeedLevel(data) {
     } else if (level == 0) {
         const elapsed = Math.floor((new Date() - last_stop_time) / 1000);
         text += `（${elapsed}秒）`;
-        if (elapsed > 30) {
-            cls = 'warning';
-            percent = Math.min(100, elapsed - 20);
+        const touch_level = data.average_touch?.at(-1) ?? -1;
+        if (elapsed >= 10 && touch_level > 0) {
+            cls = elapsed >= 30 ? 'error' : 'warning';
+            percent = 100;
         }
     }
     return `
