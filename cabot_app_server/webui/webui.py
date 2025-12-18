@@ -152,6 +152,36 @@ class WebUI:
                 return jsonify({'image': image_data})
             return jsonify(self.last_image)
 
+        @app.route("/map/<path:path>", methods=["GET", "POST"])
+        def proxy(path):
+            import requests
+            resp = requests.request(
+                method=request.method,
+                url=f"http://localhost:9090/map/{path}",
+                params=request.args,
+                headers={k: v for k, v in request.headers if k != "Host"},
+                data=request.get_data(),
+                cookies=request.cookies,
+                stream=True,
+            )
+            EXCLUDED_HEADERS = {
+                'content-length',
+                'transfer-encoding',
+                'content-encoding',
+                'connection',
+                'keep-alive',
+                'proxy-authenticate',
+                'proxy-authorization',
+                'te',
+                'trailers',
+                'upgrade',
+            }
+            return Response(
+                resp.content,
+                status=resp.status_code,
+                headers={k: v for k, v in resp.headers.items() if k.lower() not in EXCLUDED_HEADERS},
+            )
+
         # Socket.IO Wrappers
         original_emit = sio.emit
         original_handler = sio._handle_event_internal
