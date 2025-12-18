@@ -238,14 +238,6 @@ function renderCurrentDestinations(data) {
     return html;
 }
 
-function renderSpeakHistories(data) {
-    let html = '';
-    for (const obj of data['share.Speak'] ?? []) {
-        html += `<div>${new Date(obj.timestamp).toLocaleTimeString()} : ${obj.data}</div>`;
-    }
-    return html;
-}
-
 function renderChatHistories(data) {
     let html = '';
     for (const item of data['share.ChatStatus'] ?? []) {
@@ -254,52 +246,64 @@ function renderChatHistories(data) {
     return html;
 }
 
+function renderSpeakHistories(data) {
+    let html = '';
+    for (const item of data['share.Speak'] ?? []) {
+        html += renderHistoryItem(item, 'speak')
+    }
+    return html;
+}
+
 function renderButtonHistories(data) {
     let html = "";
-    const button_names = ['上', '下', '左', '右', '中央'];
-    for (const button of data.button ?? []) {
-        const bd = button.data;
-        let text;
-        if (bd.type == 'click') {
-            text = `${button_names[bd.buttons-1]}ボタン`;
-            if (bd.count == 1) {
-                text += `クリック`;
-            } else if (bd.count == 2) {
-                text += `ダブルクリック`;
-            } else if (bd.count >= 3) {
-                text += `トリプルクリック`;
-            }
-        } else if (bd.type == 'holddown') {
-            text = `${button_names[bd.holddown-1]}ボタン長押し`;
-            if (bd.duration > 1) {
-                text += ` ${bd.duration}秒`;
-            }
-        }
-        html += `<div>${new Date(button.timestamp).toLocaleTimeString()} : ${text}</div>`;
+    for (const item of data.button ?? []) {
+        html += renderHistoryItem(item, 'button');
     }
     return html;
 }
 
 function renderDestinationHistories(data) {
     let html = "";
-    const arr = data.destination ?? [];
-    const destinations = arr.filter((v, i) => v !== arr[i - 1]);
-    for (const destination of destinations) {
-        let name
-        switch (destination.data) {
-            case '__arrived__':
-                name = '到着';
-                break;
-            case '__cancel__':
-                name = 'キャンセル';
-                break;
-            default:
-                name = `${destination_name(destination.data)}に移動`;
-                break;
-        }
-        html += `<div>${new Date(destination.timestamp).toLocaleTimeString()} : ${name}</div>`;
+    for (const item of data.destination ?? []) {
+        html += renderHistoryItem(item, 'destination');
     }
     return html;
+}
+
+function renderHistories(data) {
+    const a = (data['share.Speak'] ?? []).map(item => { item._type = 'speak'; return item; })
+    const b = (data.button ?? []).map(item => { item._type = 'button'; return item; })
+    const c = (data.destination ?? []).map(item => { item._type = 'destination'; return item; })
+    const merged = [...a, ...b, ...c].sort((x, y) => x.timestamp.localeCompare(y.timestamp)).slice(-15);;
+    let html = '';
+    for (const item of merged) {
+        html += renderHistoryItem(item, item._type);
+    }
+    return html;
+}
+
+function renderHistoryItem(item, type) {
+    const timestamp = new Date(item.timestamp).toLocaleTimeString();
+    const data = item.data;
+    let text;
+    switch (type) {
+        case 'speak':
+            text = data;
+            break
+        case 'button':
+            const button_names = ['上', '下', '左', '右', '中央'];
+            if (data.type == 'click') {
+                text = `${button_names[data.buttons - 1]}ボタンを`;
+                text += data.count == 1 ? 'クリック' : data.count == 2 ? 'ダブルクリック' : 'トリプルクリック';
+            } else if (data.type == 'holddown') {
+                text = `${button_names[data.holddown - 1]}ボタンを長押し ${data.duration}秒`;
+            }
+            break;
+        case 'destination':
+            text = data == '__arrived__' ? '到着' : data == '__cancel__' ? 'キャンセル' : `${destination_name(data)}に移動`;
+            break;
+    }
+    return `<div class="history-${type}">${new Date(item.timestamp).toLocaleTimeString()} : ${text}</div>`;
 }
 
 function renderSystemStatus(data) {
@@ -586,9 +590,8 @@ function handle_last_data() {
                 replaceHTML('tours', renderTours(directory_data.tours));
             }
             diagnostics_level = -1;
-            replaceHTML('speak_histories', renderSpeakHistories(data));
+            replaceHTML('histories', renderHistories(data));
             replaceHTML('chat_histories', renderChatHistories(data));
-            replaceHTML('button_histories', renderButtonHistories(data));
             replaceHTML('navigation_histories', renderDestinationHistories(data));
             replaceHTML('current_destinations', renderCurrentDestinations(data));
             replaceHTML('system_info', renderSystemStatus(data));

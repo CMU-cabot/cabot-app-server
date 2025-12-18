@@ -117,7 +117,9 @@ fieldset.collapsed {
   margin: 0;
 }
 
-#speak_histories div {
+div.history-speak,
+div.history-destination,
+div.history-button {
   margin: 10px 0px;
   padding: 4px 10px;
   border: 1px solid #ddd;
@@ -125,7 +127,18 @@ fieldset.collapsed {
   width: fit-content;
   white-space: pre-wrap;
   line-height: 1.4;
+}
+
+div.history-speak {
   background: #eef;
+}
+
+div.history-destination {
+  background: #fee;
+}
+
+div.history-button {
+  background: #efe;
 }
 
 .chat-container {
