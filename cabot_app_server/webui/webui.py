@@ -73,6 +73,13 @@ class WebUI:
 
         @app.route('/last_data/')
         def last_data():
+            touch_buffer = list(common.touch_buffer)
+            common.touch_buffer.clear()
+            cmd_vel_buffer = list(common.cmd_vel_buffer)
+            common.cmd_vel_buffer.clear()
+            common.logger.info(f"touch_buffer: {len(touch_buffer)}, cmd_vel_buffer: {len(cmd_vel_buffer)}")
+            self.last_data['average_touch'] = [sum(abs(obj.data) for obj in touch_buffer) / len(touch_buffer) if touch_buffer else -1]
+            self.last_data['average_speed'] = [sum(abs(obj.linear.x) for obj in cmd_vel_buffer) / len(cmd_vel_buffer) if cmd_vel_buffer else -1]
             self.last_data['localize_status'] = [common.last_localize_status]
             key = request.args.get('key')
             return jsonify({key: self.last_data.get(key, [])}) if key else jsonify(self.last_data)

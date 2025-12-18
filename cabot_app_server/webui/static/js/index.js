@@ -271,10 +271,10 @@ function renderDestinationHistories(data) {
 }
 
 function renderHistories(data) {
-    const a = (data['share.Speak'] ?? []).map(item => { item._type = 'speak'; return item; })
-    const b = (data.button ?? []).map(item => { item._type = 'button'; return item; })
-    const c = (data.destination ?? []).map(item => { item._type = 'destination'; return item; })
-    const merged = [...a, ...b, ...c].sort((x, y) => x.timestamp.localeCompare(y.timestamp)).slice(-15);;
+    const a = (data['share.Speak'] ?? []).map(item => ({ ...item, _type: 'speak' }));
+    const b = (data.button ?? []).map(item => ({ ...item, _type: 'button' }));
+    const c = (data.destination ?? []).map(item => ({ ...item, _type: 'destination' }));
+    const merged = [...a, ...b, ...c].sort((x, y) => x.timestamp.localeCompare(y.timestamp)).slice(-15);
     let html = '';
     for (const item of merged) {
         html += renderHistoryItem(item, item._type);
@@ -376,23 +376,8 @@ function renderBattery(data) {
     return html;
 }
 
-function get_touch_level(data) {
-    const buffer = (data.touch ?? []).slice(-5);
-    if (buffer.length == 0) {
-        return -1;
-    }
-    let total = 0;
-    for (const touch of buffer) {
-        if (touch.level == -1) {
-            return -1;
-        }
-        total += touch.level;
-    }
-    return total / buffer.length;
-}
-
 function renderTouchLevel(data) {
-    const level = get_touch_level(data);
+    const level = data.average_touch?.at(-1) ?? -1
     let percent = Math.max(level * 100, 0);
     let text = 'オン';
     let cls = '';
@@ -404,14 +389,24 @@ function renderTouchLevel(data) {
         cls = "error";
         text = `${Math.floor(level * 100)}%`;
     }
-    let html = '';
-    html += `
+    return `
         <div class="bar-container">
             <div class="bar-fill ${cls}" style="width:${percent}%"></div>
             <span class="bar-label">${text}</span>
         </div>
     `;
-    return html;
+}
+
+function renderSpeedLevel(data) {
+    const level = data.average_speed?.at(-1) ?? -1
+    let percent = Math.max(level * 100, 0);
+    let text = level < 0 ? '未検出' : level == 0 ? '停止中' : `${level.toFixed(3)}`;
+    return `
+        <div class="bar-container">
+            <div class="bar-fill " style="width:${percent}%"></div>
+            <span class="bar-label">${text}</span>
+        </div>
+    `;
 }
 
 function renderDiagnosticsLevel() {
@@ -596,6 +591,7 @@ function handle_last_data() {
             replaceHTML('current_destinations', renderCurrentDestinations(data));
             replaceHTML('system_info', renderSystemStatus(data));
             replaceHTML('touch_level', renderTouchLevel(data));
+            replaceHTML('speed_level', renderSpeedLevel(data));
             replaceHTML('battery', renderBattery(data));
             replaceHTML('temperature', renderTemperature(data));
             replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');

@@ -43,7 +43,7 @@ from sensor_msgs.msg import CompressedImage
 from tf_transformations import euler_from_quaternion
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from geometry_msgs.msg import Quaternion
+from geometry_msgs.msg import Quaternion, Twist
 
 from mf_localization_msgs.srv import MFTrigger
 from mf_localization_msgs.srv import RestartLocalization
@@ -77,6 +77,8 @@ if DEBUG:
     set_debug_mode()
 
 message_buffer = deque(maxlen=10)
+touch_buffer = deque(maxlen=30)
+cmd_vel_buffer = deque(maxlen=30)
 
 last_camera_image: CompressedImage = None
 last_camera_orientation: Quaternion = None
@@ -685,6 +687,8 @@ class CabotNode_Sub(Node):
         self.location_sub = self.create_subscription(PoseLog2, '/cabot/pose_log2', self.location_callback, 10)
         self.rosmap_image_sub = self.create_subscription(CompressedImage, '/rosmap_image/compressed', self.rosmap_image_callback, 10)
         self.localize_status_sub = self.create_subscription(MFLocalizeStatus, "/localize_status", self.localize_status_callback, 10)
+        self.cmd_vel_sub = self.create_subscription(Twist, '/cabot/cmd_vel', self.cmd_vel_callback, 10)
+
 
 
     def diagnostic_agg_callback(self, msg):
@@ -721,6 +725,10 @@ class CabotNode_Sub(Node):
 
     def cabot_touch_callback(self, msg):
         message_buffer.append(msg.data)
+        touch_buffer.append(msg)
+
+    def cmd_vel_callback(self, msg):
+        cmd_vel_buffer.append(msg)
 
     def camera_image_callback(self, msg):
         global last_camera_image, last_camera_orientation
