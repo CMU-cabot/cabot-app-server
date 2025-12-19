@@ -623,6 +623,8 @@ function handle_last_data() {
             replaceHTML('temperature', renderTemperature(data));
             replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
             replaceText('right-item', `バッテリー残量: ${data.battery_status?.at(-1)?.message ?? '不明'}`);
+            const floor = data.location?.at(-1)?.floor ?? null;
+            replaceText('floor_name', floor == null ? '' : floor == 0 ? '屋外' : floor < 0 ? `地下${floor}階` : `${floor}階`);
             replaceHTML('diagnostics_level', renderDiagnosticsLevel());
             replaceHTML('pitch_level', renderImuData(data, 'pitch', 15, 30));
             replaceHTML('roll_level', renderImuData(data, 'roll', 8, 12));

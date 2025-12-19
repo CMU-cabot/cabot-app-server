@@ -366,3 +366,8 @@ legend[onclick]:hover {
   text-align: center;
   white-space: nowrap;
 }
+
+#floor_name {
+  display: inline-block;
+  margin: 0px 10px;
+}
