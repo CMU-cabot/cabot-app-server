@@ -622,8 +622,8 @@ function handle_last_data() {
             replaceHTML('temperature', renderTemperature(data));
             replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
             replaceHTML('diagnostics_level', renderDiagnosticsLevel());
-            replaceHTML('pitch_level', renderImuData(data, 'pitch'));
-            replaceHTML('roll_level', renderImuData(data, 'roll'));
+            replaceHTML('pitch_level', renderImuData(data, 'pitch', 15, 30));
+            replaceHTML('roll_level', renderImuData(data, 'roll', 8, 12));
             if (document.getElementById('debug-info').style.display != 'none' && !document.getElementById('pause_debug_update').checked) {
                 document.getElementById('messages').innerText = JSON.stringify(data, null, 2);
             }
