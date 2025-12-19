@@ -77,16 +77,18 @@ if DEBUG:
     set_debug_mode()
 
 message_buffer = deque(maxlen=10)
-touch_buffer = deque(maxlen=30)
-cmd_vel_buffer = deque(maxlen=30)
 
 last_camera_image: CompressedImage = None
 last_camera_orientation: Quaternion = None
+last_location: PoseLog2 = None
+
+# for WebUI
+touch_buffer = deque(maxlen=30)
+cmd_vel_buffer = deque(maxlen=30)
 last_camera_left_image: CompressedImage = None
 last_camera_left_orientation: Quaternion = None
 last_camera_right_image: CompressedImage = None
 last_camera_right_orientation: Quaternion = None
-last_location: PoseLog2 = None
 last_rosmap_image: CompressedImage = None
 last_localize_status = MFLocalizeStatus.UNKNOWN
 last_imu_data: Imu = None
@@ -731,9 +733,6 @@ class CabotNode_Sub(Node):
         message_buffer.append(msg.data)
         touch_buffer.append(msg)
 
-    def cmd_vel_callback(self, msg):
-        cmd_vel_buffer.append(msg)
-
     def camera_image_callback(self, msg):
         global last_camera_image, last_camera_orientation
         last_camera_image = msg
@@ -743,6 +742,10 @@ class CabotNode_Sub(Node):
             last_camera_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
         except:  # noqa: E722
             pass
+
+    def location_callback(self, msg):
+        global last_location
+        last_location = msg
 
     def camera_left_image_callback(self, msg):
         global last_camera_left_image, last_camera_left_orientation
@@ -764,13 +767,12 @@ class CabotNode_Sub(Node):
         global last_rosmap_image
         last_rosmap_image = msg
 
-    def location_callback(self, msg):
-        global last_location
-        last_location = msg
-
     def localize_status_callback(self, msg):
         global last_localize_status
         last_localize_status = msg.status
+
+    def cmd_vel_callback(self, msg):
+        cmd_vel_buffer.append(msg)
 
     def imu_callback(self, msg):
         global last_imu_data
