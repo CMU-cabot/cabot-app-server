@@ -621,6 +621,7 @@ function handle_last_data() {
             replaceHTML('battery', renderBattery(data));
             replaceHTML('temperature', renderTemperature(data));
             replaceText('cabot_name', data.cabot_name?.at(-1) ?? '未接続');
+            replaceText('right-item', `バッテリー残量: ${data.battery_status?.at(-1)?.message ?? '不明'}`);
             replaceHTML('diagnostics_level', renderDiagnosticsLevel());
             replaceHTML('pitch_level', renderImuData(data, 'pitch', 15, 30));
             replaceHTML('roll_level', renderImuData(data, 'roll', 8, 12));

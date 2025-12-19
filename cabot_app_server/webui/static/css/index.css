@@ -323,3 +323,34 @@ legend[onclick]:hover {
 .next-destination {
   font-weight: bold;
 }
+
+#header {
+  display: flex;
+  align-items: center;
+}
+
+#left-area,
+#right-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+#left-area {
+  justify-content: flex-start;
+}
+
+#right-area {
+  justify-content: flex-end;
+}
+
+#left-area,
+#right-item {
+  margin: auto;
+}
+
+#cabot_name {
+  flex: 0 0 auto;
+  text-align: center;
+  white-space: nowrap;
+}

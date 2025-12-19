@@ -35,14 +35,20 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
         <div id="selector-container"></div>
     </div>
     <div id="selector-backdrop"></div>
-    <div id="cabot_name">未接続</div>
+    <div id="header">
+        <div id="left-area">
+            <div id="left-item"></div>
+        </div>
+        <div id="cabot_name">未接続</div>
+        <div id="right-area">
+            <div id="right-item"></div>
+        </div>
+    </div>
     <div id="settings-container">
         <fieldset id="image-items" data-system="Active" class="span2">
             <legend>カメラとマップ</legend>
             <div>
-                <img id="camera_left_image" class="camera_image">
-                <div class="camera-gap"></div><img id="camera_center_image" class="camera_image center_image">
-                <div class="camera-gap"></div><img id="camera_right_image" class="camera_image">
+                <img id="camera_left_image" class="camera_image"><div class="camera-gap"></div><img id="camera_center_image" class="camera_image center_image"><div class="camera-gap"></div><img id="camera_right_image" class="camera_image">
             </div>
             <div>
                 <img id="custom_image">
@@ -60,12 +66,30 @@ THE SOFTWARE.Copyright (c) 2023  Carnegie Mellon University and Miraikan
                 <legend>ステータス</legend>
                 <table>
                     <tbody>
-                        <tr><td>ユーザーアプリ</td><td id="user_app_status"></td></tr>
-                        <tr><td>診断情報</td><td id="diagnostics_level"></td></tr>
-                        <tr><td>タッチ状態</td><td id="touch_level"></td></tr>
-                        <tr><td>走行速度</td><td id="speed_level"></td></tr>
-                        <tr><td>前後傾き</td><td id="pitch_level"></td></tr>
-                        <tr><td>左右傾き</td><td id="roll_level"></td></tr>
+                        <tr>
+                            <td>ユーザーアプリ</td>
+                            <td id="user_app_status"></td>
+                        </tr>
+                        <tr>
+                            <td>診断情報</td>
+                            <td id="diagnostics_level"></td>
+                        </tr>
+                        <tr>
+                            <td>タッチ状態</td>
+                            <td id="touch_level"></td>
+                        </tr>
+                        <tr>
+                            <td>走行速度</td>
+                            <td id="speed_level"></td>
+                        </tr>
+                        <tr>
+                            <td>前後傾き</td>
+                            <td id="pitch_level"></td>
+                        </tr>
+                        <tr>
+                            <td>左右傾き</td>
+                            <td id="roll_level"></td>
+                        </tr>
                     </tbody>
                 </table>
                 <div id="user_app_status"></div>
