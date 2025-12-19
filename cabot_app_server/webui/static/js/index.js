@@ -414,6 +414,7 @@ function renderSpeedLevel(data) {
             percent = 100;
         }
     }
+    document.getElementById('custom_image').className = cls;
     return `
         <div class="bar-container">
             <div class="bar-fill ${cls}" style="width:${percent}%"></div>

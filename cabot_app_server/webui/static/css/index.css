@@ -98,6 +98,18 @@ dialog {
   max-width: 728px;
 }
 
+#custom_image {
+  box-sizing: border-box;
+}
+
+#custom_image.warning {
+  border: 2px solid yellow;
+}
+
+#custom_image.error {
+  border: 2px solid red;
+}
+
 .rosmap-buttons {
   display: inline-block;
   text-align: center;
