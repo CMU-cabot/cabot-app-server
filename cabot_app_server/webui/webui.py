@@ -182,6 +182,10 @@ class WebUI:
                 headers={k: v for k, v in resp.headers.items() if k.lower() not in EXCLUDED_HEADERS},
             )
 
+        @app.route('/map/location-history.html')
+        def location_history():
+            return render_template("location-history.html")
+
         # Socket.IO Wrappers
         original_emit = sio.emit
         original_handler = sio._handle_event_internal

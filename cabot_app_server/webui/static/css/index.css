@@ -371,3 +371,8 @@ legend[onclick]:hover {
   display: inline-block;
   margin: 0px 10px;
 }
+
+#map-frame {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
