@@ -25,7 +25,7 @@ import json
 import math
 import re
 import socketio
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import datetime, timezone
 from flask import Flask, Response, jsonify, render_template, request
 from tf_transformations import euler_from_quaternion
@@ -68,6 +68,7 @@ class WebUI:
         self.last_data = defaultdict(list)
         self.last_image = {}
         self.tour_manager = tour_manager.TourManager()
+        self.location_buffer = deque(maxlen=60 * 60)
 
         @app.route('/')
         def index():
@@ -98,6 +99,10 @@ class WebUI:
                 self.last_data['imu_data'] = [{'roll': abs(math.degrees(roll)), 'pitch': abs(math.degrees(pitch))}]
             key = request.args.get('key')
             return jsonify({key: self.last_data.get(key, [])}) if key else jsonify(self.last_data)
+
+        @app.route('/past_locations/')
+        def past_locations():
+            return jsonify(list(self.location_buffer))
 
         @app.route('/directory/')
         def directory():
@@ -155,6 +160,7 @@ class WebUI:
         @app.route("/map/<path:path>", methods=["GET", "POST"])
         def proxy(path):
             import requests
+
             resp = requests.request(
                 method=request.method,
                 url=f"http://localhost:9090/map/{path}",
@@ -297,6 +303,8 @@ class WebUI:
 
         if event in self.SIMPLE_LAST_EVENTS:
             self.last_data[event] = [data]
+            if event == 'location':
+                self.location_buffer.append(data)
             return
 
         if event in self.SIMPLE_HISTORY_EVENTS:

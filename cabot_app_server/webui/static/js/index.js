@@ -680,7 +680,7 @@ function handle_last_data() {
                 restart_localization.textContent = text;
                 restart_localization.disabled = localize_status != 2;
             }
-            add_location_history(data.location?.at(-1));
+            add_location_history(data.location);
             document.body.classList.remove('disabled');
         })
         .catch(error => {
@@ -784,25 +784,33 @@ function init_map() {
     const routeLayer = $hulop.map.getRouteLayer();
     routeLayer.setStyle(feature => feature.get('floor') == $hulop.indoor.getCurrentFloor() ? point_style : null);
     $hulop.map.getMap().getView().setZoom(20.5);
+    fetch('/past_locations/', {})
+        .then(response => response.json())
+        .then(add_location_history);
 }
 
-function add_location_history(location) {
-    if ($hulop && location) {
-        if (last_location && location.lat == last_location.lat && location.lng == last_location.lng && location.floor == last_location.floor) {
-            return;
-        }
-        last_location = location;
-        const lng_lat = [location.lng, location.lat];
-        $hulop.indoor.showFloor(location.floor);
-        $hulop.map.setCenter(lng_lat);
+function add_location_history(locations) {
+    if ($hulop && locations) {
+        let changed;
+        for (const location of locations) {
+            if (last_location && location.lat == last_location.lat && location.lng == last_location.lng && location.floor == last_location.floor) {
+                continue;
+            }
+            var feature = new ol.Feature({
+                geometry: new ol.geom.Point(
+                    ol.proj.fromLonLat([location.lng, location.lat])
+                ),
+                floor: location.floor
+            });
+            $hulop.map.getRouteLayer().getSource().addFeature(feature);
 
-        var feature = new ol.Feature({
-            geometry: new ol.geom.Point(
-                ol.proj.fromLonLat(lng_lat)
-            ),
-            floor: location.floor
-        });
-        $hulop.map.getRouteLayer().getSource().addFeature(feature);
+            last_location = location;
+            changed = true;
+        }
+        if (changed) {
+            $hulop.indoor.showFloor(last_location.floor);
+            $hulop.map.setCenter([last_location.lng, last_location.lat]);
+        }
     }
 }
 
