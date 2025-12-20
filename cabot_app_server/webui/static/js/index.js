@@ -697,7 +697,7 @@ function handle_camera_image() {
     fetch('/camera_image/', {})
         .then(response => response.json())
         .then(data => {
-            for (d of data) {
+            for (const d of data) {
                 const img = document.getElementById(`camera_${d.position}_image`);
                 img.src = d.image ?? '';
                 img.style.transform = d.transform ?? '';
