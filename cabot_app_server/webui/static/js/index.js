@@ -680,6 +680,7 @@ function handle_last_data() {
                 restart_localization.textContent = text;
                 restart_localization.disabled = localize_status != 2;
             }
+            add_location_history(data.location?.at(-1));
             document.body.classList.remove('disabled');
         })
         .catch(error => {
@@ -762,6 +763,49 @@ function init_selector() {
     });
 }
 
+let last_location;
+
+function init_map() {
+    window.$hulop = document.getElementById('map-frame')?.contentWindow?.$hulop;
+    window.ol = document.getElementById('map-frame')?.contentWindow?.ol;
+    if (!$hulop || !ol) {
+        console.error('No map info found');
+        return;
+    }
+
+    const point_style = new ol.style.Style({
+        'image': new ol.style.Circle({
+            'radius': 3,
+            'fill': new ol.style.Fill({
+                'color': 'red'
+            })
+        })
+    });
+    const routeLayer = $hulop.map.getRouteLayer();
+    routeLayer.setStyle(feature => feature.get('floor') == $hulop.indoor.getCurrentFloor() ? point_style : null);
+    $hulop.map.getMap().getView().setZoom(20.5);
+}
+
+function add_location_history(location) {
+    if ($hulop && location) {
+        if (last_location && location.lat == last_location.lat && location.lng == last_location.lng && location.floor == last_location.floor) {
+            return;
+        }
+        last_location = location;
+        const lng_lat = [location.lng, location.lat];
+        $hulop.indoor.showFloor(location.floor);
+        $hulop.map.setCenter(lng_lat);
+
+        var feature = new ol.Feature({
+            geometry: new ol.geom.Point(
+                ol.proj.fromLonLat(lng_lat)
+            ),
+            floor: location.floor
+        });
+        $hulop.map.getRouteLayer().getSource().addFeature(feature);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
     add_destination_dialog = document.getElementById('add_destination_dialog');
@@ -789,4 +833,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
     init_selector();
+
+    document.getElementById('map-frame').addEventListener('load', () => {
+        console.log('iframe loaded');
+        init_map();
+    });
 });
