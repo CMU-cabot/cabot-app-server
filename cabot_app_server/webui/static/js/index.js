@@ -25,7 +25,7 @@ let directory_data = {};
 let node_names = {};
 let tour_names = {};
 let last_data = {};
-let __debug__ = {};
+let __debug__ = { data_timer: {}, camera_timer: {}, image_timer: {} };
 let current_lang = '';
 let current_handleside = '';
 let cuurrent_touchmode = '';
@@ -46,7 +46,12 @@ function post_data(url, body) {
         },
         body: JSON.stringify(body)
     })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            return response.json();
+        })
         .catch(error => console.error('Error:', error));
 }
 
@@ -593,9 +598,14 @@ function set_disabled(userapp_level, system_level) {
     }
 }
 
-function handle_last_data() {
-    fetch('/last_data/', {})
-        .then(response => response.json())
+async function handle_last_data() {
+    await fetch('/last_data/', {})
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             last_data = data;
             let lang = data['share.ChangeLanguage']?.at(-1);
@@ -690,12 +700,17 @@ function handle_last_data() {
 
 }
 
-function handle_camera_image() {
+async function handle_camera_image() {
     if (document.getElementById('image-items').style.display == 'none') {
         return;
     }
-    fetch('/camera_image/', {})
-        .then(response => response.json())
+    await fetch('/camera_image/', {})
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             for (const d of data) {
                 const img = document.getElementById(`camera_${d.position}_image`);
@@ -706,12 +721,17 @@ function handle_camera_image() {
         .catch(error => console.error('Error:', error));
 }
 
-function handle_custom_image() {
+async function handle_custom_image() {
     if (document.getElementById('image-items').style.display == 'none') {
         return;
     }
-    fetch('/custom_image/', {})
-        .then(response => response.json())
+    await fetch('/custom_image/', {})
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             const img = document.getElementById('custom_image');
             img.src = data.image ?? '';
@@ -785,7 +805,12 @@ function init_map() {
     routeLayer.setStyle(feature => feature.get('floor') == $hulop.indoor.getCurrentFloor() ? point_style : null);
     $hulop.map.getMap().getView().setZoom(20.5);
     fetch('/past_locations/', {})
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            return response.json();
+        })
         .then(add_location_history);
 }
 
@@ -814,6 +839,14 @@ function add_location_history(locations) {
     }
 }
 
+async function handle_interval(func, duration, control) {
+    try {
+        control.pause || await func();
+    } finally {
+        setTimeout(() => handle_interval(func, duration, control), duration);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
     add_destination_dialog = document.getElementById('add_destination_dialog');
@@ -823,7 +856,12 @@ document.addEventListener('DOMContentLoaded', function () {
     generic_confirm_dialog.addEventListener('close', generic_confirm_close);
 
     fetch('/directory/', {})
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             console.log(data);
             if (!data.tours) {
@@ -831,9 +869,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             directory_data = data;
-            __debug__.data_timer = setInterval(handle_last_data, 1000);
-            __debug__.camera_timer = setInterval(handle_camera_image, 2000);
-            __debug__.image_timer = setInterval(handle_custom_image, 1000);
+            handle_interval(handle_last_data, 1000, __debug__.data_timer);
+            handle_interval(handle_camera_image, 2000, __debug__.camera_timer);
+            handle_interval(handle_custom_image, 1000, __debug__.image_timer);
         })
         .catch(error => {
             console.error('Error:', error);
