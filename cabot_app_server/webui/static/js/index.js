@@ -25,7 +25,7 @@ let directory_data = {};
 let node_names = {};
 let tour_names = {};
 let last_data = {};
-let __debug__ = { data_timer: {}, camera_timer: {}, image_timer: {} };
+let __debug__ = { data_timer: {}, camera_timer: {}, image_timer: {}, health_timer: {} };
 let current_lang = '';
 let current_handleside = '';
 let cuurrent_touchmode = '';
@@ -691,12 +691,8 @@ async function handle_last_data() {
                 restart_localization.disabled = localize_status != 2;
             }
             add_location_history(data.location);
-            document.body.classList.remove('disabled');
         })
-        .catch(error => {
-            console.error('Error:', error);
-            document.body.classList.add('disabled');
-        });
+        .catch(error => console.error('Error:', error));
 
 }
 
@@ -738,6 +734,20 @@ async function handle_custom_image() {
             img.style.transform = data.transform ?? '';
         })
         .catch(error => console.error('Error:', error));
+}
+
+async function handle_health() {
+    await fetch('/_health/', {})
+        .then(response => {
+            if (response.ok) {
+                document.body.classList.remove('disabled');
+            } else {
+                document.body.classList.add('disabled');
+            }
+        })
+        .catch(error => {
+            document.body.classList.add('disabled');
+        });
 }
 
 function init_selector() {
@@ -803,7 +813,7 @@ function init_map() {
     });
     const routeLayer = $hulop.map.getRouteLayer();
     routeLayer.setStyle(feature => feature.get('floor') == $hulop.indoor.getCurrentFloor() ? point_style : null);
-    $hulop.map.getMap().getView().setZoom(20.5);
+    $hulop.map.getMap()?.getView()?.setZoom(20.5);
     fetch('/past_locations/', {})
         .then(response => {
             if (!response.ok) {
@@ -815,7 +825,7 @@ function init_map() {
 }
 
 function add_location_history(locations) {
-    if ($hulop && locations) {
+    if (window.$hulop && locations) {
         let changed;
         for (const location of locations) {
             if (last_location && location.lat == last_location.lat && location.lng == last_location.lng && location.floor == last_location.floor) {
@@ -832,20 +842,30 @@ function add_location_history(locations) {
             last_location = location;
             changed = true;
         }
-        if (changed) {
+        if (changed && $hulop.map.getView) {
             $hulop.indoor.showFloor(last_location.floor);
             $hulop.map.setCenter([last_location.lng, last_location.lat]);
         }
     }
 }
 
-async function handle_interval(func, duration, control) {
-    try {
-        control.pause || await func();
-    } finally {
-        setTimeout(() => handle_interval(func, duration, control), duration);
+function handle_interval(func, interval, control) {
+    let running = false;
+
+    function loop() {
+        if (!control.pause && !running) {
+            running = true;
+            func()
+                .catch(e => console.error(e))
+                .finally(() => {
+                    running = false;
+                });
+        }
+        setTimeout(loop, interval);
     }
+    loop();
 }
+
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -872,6 +892,7 @@ document.addEventListener('DOMContentLoaded', function () {
             handle_interval(handle_last_data, 1000, __debug__.data_timer);
             handle_interval(handle_camera_image, 2000, __debug__.camera_timer);
             handle_interval(handle_custom_image, 1000, __debug__.image_timer);
+            handle_interval(handle_health, 1000, __debug__.health_timer);
         })
         .catch(error => {
             console.error('Error:', error);

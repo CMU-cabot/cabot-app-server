@@ -40,8 +40,8 @@ class WebUI:
         'cabot_name',
         'cabot_version',
         'elevator_settings',
-        'device_status',
-        'system_status',
+        # 'device_status',
+        # 'system_status',
         'battery_status',
         'location',
     }
@@ -59,16 +59,30 @@ class WebUI:
         'button',
     }
 
-    IGNORE_EVENTS = {'req_version', 'req_name', 'heartbeat', 'camera_image_request', 'camera_image', 'camera_orientation'}
+    IGNORE_EVENTS = {
+        'req_version',
+        'req_name',
+        'heartbeat',
+        'camera_image_request',
+        'camera_image',
+        'camera_orientation',
+        'device_status',
+        'system_status',
+    }
 
     def __init__(self, server: tcp.CaBotTCP):
         app: Flask = server.app
         sio: socketio.Server = server.sio
         manage_cabot_char = server.manage_cabot_char
+        cabot_manager = server.cabot_manager
         self.last_data = defaultdict(list)
         self.last_image = {}
         self.tour_manager = tour_manager.TourManager()
         self.location_buffer = deque(maxlen=60 * 60)
+
+        @app.route('/_health/')
+        def health():
+            return jsonify({'status': 'ok'})
 
         @app.route('/')
         def index():
@@ -84,6 +98,8 @@ class WebUI:
             self.last_data['average_touch'] = [sum(abs(obj.data) for obj in touch_buffer) / len(touch_buffer) if touch_buffer else -1]
             self.last_data['average_speed'] = [sum(abs(obj.linear.x) for obj in cmd_vel_buffer) / len(cmd_vel_buffer) if cmd_vel_buffer else -1]
             self.last_data['localize_status'] = [common.last_localize_status]
+            self.last_data['device_status'] = [cabot_manager.device_status().json]
+            self.last_data['system_status'] = [cabot_manager.cabot_system_status().json]
             msg, common.last_imu_data = common.last_imu_data, None
             if msg is None:
                 self.last_data.pop('imu_data', None)
