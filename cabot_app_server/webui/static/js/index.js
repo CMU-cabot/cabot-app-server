@@ -861,7 +861,7 @@ function handle_interval(func, interval, control) {
                     running = false;
                 });
         }
-        setTimeout(loop, interval);
+        setTimeout(loop, interval * (0.9 + Math.random() * 0.2));
     }
     loop();
 }
