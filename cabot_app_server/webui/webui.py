@@ -256,6 +256,7 @@ class WebUI:
 
         self.tour_manager.load()
         common.logger.info("WebUI listening...")
+        start_agent()
 
     def _get_camera_image(self, msg):
         if not msg:
@@ -341,3 +342,29 @@ class WebUI:
 
 
 common.last_localize_status = 2  # force reset
+
+
+def start_agent():
+    import atexit
+    import os
+    import sys
+    import subprocess
+    from pathlib import Path
+
+    if os.getenv("CABOT_WEBUI_PUBLIC") is None:
+        return
+
+    agent_proc = subprocess.Popen([sys.executable, str(Path(__file__).resolve().parent / "webui_agent.py")])
+
+    def cleanup():
+        common.logger.info("Terminating Agent...")
+        if agent_proc and agent_proc.poll() is None:
+            agent_proc.terminate()
+            try:
+                agent_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                agent_proc.kill()
+            common.logger.info("Agent terminated")
+
+    atexit.register(cleanup)
+    common.logger.info("Starting Agent...")

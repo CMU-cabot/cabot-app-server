@@ -9,3 +9,4 @@ simple-websocket
 bleak
 setuptools==59.6.0
 transforms3d==0.4.2
+httpx==0.28.1
