@@ -32,6 +32,7 @@ logger.setLevel(logging.INFO)
 
 PUBLIC = os.getenv("CABOT_WEBUI_PUBLIC")
 LOCAL = os.getenv("CABOT_WEBUI_LOCAL", "http://localhost:5000")
+CABOT_NAME = os.getenv("CABOT_NAME", "UNKNOWN")
 
 WORKERS = 4
 MAX_INFLIGHT = 4
@@ -66,7 +67,7 @@ async def handle_request(
             )
 
         except Exception as e:
-            logger.error(f"[handle] error req_id={req.get('id')}: {e}")
+            logger.error(f"[handle] error req_id={req.get('id')}: {repr(e)}")
             try:
                 await client.post(
                     f"{PUBLIC}/_response/{req['id']}",
@@ -94,7 +95,7 @@ async def fetch_worker(
             asyncio.create_task(handle_request(client, req, sem))
 
         except Exception as e:
-            logger.error(f"[worker {worker_id}] error:", e)
+            logger.error(f"[worker {worker_id}] error: {repr(e)}")
             await asyncio.sleep(1)
 
 
@@ -108,7 +109,7 @@ async def run():
         pool=5.0,
     )
 
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with httpx.AsyncClient(timeout=timeout, headers={"X-CaBot-Name": CABOT_NAME}) as client:
         workers = [asyncio.create_task(fetch_worker(i, client, sem)) for i in range(WORKERS)]
         await asyncio.gather(*workers)
 
