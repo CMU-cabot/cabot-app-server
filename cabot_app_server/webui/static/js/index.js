@@ -842,7 +842,7 @@ function add_location_history(locations) {
             last_location = location;
             changed = true;
         }
-        if (changed && $hulop.map.getView) {
+        if (changed && $hulop.map.getMap()) {
             $hulop.indoor.showFloor(last_location.floor);
             $hulop.map.setCenter([last_location.lng, last_location.lat]);
         }
