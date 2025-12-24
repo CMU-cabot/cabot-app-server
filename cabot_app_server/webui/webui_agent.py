@@ -106,10 +106,10 @@ async def run():
     sem = asyncio.Semaphore(MAX_INFLIGHT)
 
     timeout = httpx.Timeout(
-        connect=5.0,
-        read=40.0,
+        connect=1.0,
+        read=10.0,
         write=5.0,
-        pool=5.0,
+        pool=1.0,
     )
 
     async with httpx.AsyncClient(timeout=timeout, headers={"X-CaBot-Name": CABOT_NAME}) as client:
