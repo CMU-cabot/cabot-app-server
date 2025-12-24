@@ -67,7 +67,7 @@ async def handle_request(
             )
 
         except Exception as e:
-            logger.error(f"[handle] error req_id={req.get('id')}: {PUBLIC} {repr(e)}")
+            logger.error(f"[handle] error req_id={req.get('id')} path={req.get('path')}: {repr(e)}")
             try:
                 await client.post(
                     f"{PUBLIC}/_response/{req['id']}",
@@ -83,9 +83,15 @@ async def fetch_worker(
     client: httpx.AsyncClient,
     sem: asyncio.Semaphore,
 ):
+    timeout = httpx.Timeout(
+        connect=1.0,
+        read=30.0,
+        write=5.0,
+        pool=1.0,
+    )
     while True:
         try:
-            r = await client.get(f"{PUBLIC}/_next")
+            r = await client.get(f"{PUBLIC}/_next", timeout=timeout)
             if r.status_code == 204:
                 continue
 
@@ -106,10 +112,10 @@ async def run():
     sem = asyncio.Semaphore(MAX_INFLIGHT)
 
     timeout = httpx.Timeout(
-        connect=1.0,
-        read=10.0,
+        connect=5.0,
+        read=30.0,
         write=5.0,
-        pool=1.0,
+        pool=2.0,
     )
 
     async with httpx.AsyncClient(timeout=timeout, headers={"X-CaBot-Name": CABOT_NAME}) as client:
