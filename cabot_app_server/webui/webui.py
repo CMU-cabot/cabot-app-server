@@ -28,7 +28,7 @@ import re
 import socketio
 from collections import defaultdict, deque
 from datetime import datetime, timezone
-from flask import Flask, Response, jsonify, render_template, request
+from flask import Flask, jsonify, request, Blueprint
 from tf_transformations import euler_from_quaternion
 import common
 import tcp
@@ -41,8 +41,6 @@ class WebUI:
         'cabot_name',
         'cabot_version',
         'elevator_settings',
-        # 'device_status',
-        # 'system_status',
         'battery_status',
         'location',
     }
@@ -77,20 +75,17 @@ class WebUI:
         manage_cabot_char = server.manage_cabot_char
         cabot_manager = server.cabot_manager
         self.last_data = defaultdict(list)
-        self.last_image = {}
         self.tour_manager = tour_manager.TourManager()
         self.location_buffer = deque(maxlen=60 * 60)
         logging.getLogger("werkzeug").disabled = True
 
-        @app.route('/_health/')
+        api = Blueprint("api", __name__, url_prefix="/api")
+
+        @api.route('/_health/')
         def health():
             return jsonify({'status': 'ok'})
 
-        @app.route('/')
-        def index():
-            return render_template("index.html")
-
-        @app.route('/last_data/')
+        @api.route('/last_data/')
         def last_data():
             touch_buffer = list(common.touch_buffer)
             common.touch_buffer.clear()
@@ -118,15 +113,15 @@ class WebUI:
             key = request.args.get('key')
             return jsonify({key: self.last_data.get(key, [])}) if key else jsonify(self.last_data)
 
-        @app.route('/past_locations/')
+        @api.route('/past_locations/')
         def past_locations():
             return jsonify(list(self.location_buffer))
 
-        @app.route('/directory/')
+        @api.route('/directory/')
         def directory():
             return jsonify(self.tour_manager.format_directories())
 
-        @app.route('/publish/', methods=['POST'])
+        @api.route('/publish/', methods=['POST'])
         def speak():
             body = request.get_json()
             event = body.get("event")
@@ -139,7 +134,7 @@ class WebUI:
             sio.emit(event, data, **kwargs)
             return jsonify({'status': 'ok'})
 
-        @app.route('/manage/', methods=['POST'])
+        @api.route('/manage/', methods=['POST'])
         def manage():
             body = request.get_json()
             data = body.get("data")
@@ -152,7 +147,7 @@ class WebUI:
             manage_cabot_char.callback(0, data.encode("utf-8"))
             return jsonify({'status': 'ok'})
 
-        @app.route('/camera_image/')
+        @api.route('/camera_image/')
         def camera_image():
             return jsonify(
                 [
@@ -162,53 +157,14 @@ class WebUI:
                 ]
             )
 
-        @app.route('/upload_image/', methods=['POST'])
-        def upload_image():
-            self.last_image = request.get_json()
-            common.logger.info(f"/upload_image/ type={self.last_image.get('type', 'unknown')}")
-            return jsonify({'status': 'ok'})
-
-        @app.route('/custom_image/')
+        @api.route('/custom_image/')
         def custom_image():
             if common.last_rosmap_image:
                 image_data = self._get_camera_image(common.last_rosmap_image)
                 return jsonify({'image': image_data})
-            return jsonify(self.last_image)
+            return {}
 
-        @app.route("/map/<path:path>", methods=["GET", "POST"])
-        def proxy(path):
-            import requests
-
-            resp = requests.request(
-                method=request.method,
-                url=f"http://localhost:9090/map/{path}",
-                params=request.args,
-                headers={k: v for k, v in request.headers if k != "Host"},
-                data=request.get_data(),
-                cookies=request.cookies,
-                stream=True,
-            )
-            EXCLUDED_HEADERS = {
-                'content-length',
-                'transfer-encoding',
-                'content-encoding',
-                'connection',
-                'keep-alive',
-                'proxy-authenticate',
-                'proxy-authorization',
-                'te',
-                'trailers',
-                'upgrade',
-            }
-            return Response(
-                resp.content,
-                status=resp.status_code,
-                headers={k: v for k, v in resp.headers.items() if k.lower() not in EXCLUDED_HEADERS},
-            )
-
-        @app.route('/map/location-history.html')
-        def location_history():
-            return render_template("location-history.html")
+        app.register_blueprint(api)
 
         # Socket.IO Wrappers
         original_emit = sio.emit
