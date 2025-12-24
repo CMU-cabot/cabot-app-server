@@ -81,7 +81,7 @@ class WebUI:
 
         api = Blueprint("api", __name__, url_prefix="/api")
 
-        @api.route('/_health/')
+        @api.route('/health/')
         def health():
             return jsonify({'status': 'ok'})
 
