@@ -67,7 +67,7 @@ async def handle_request(
             )
 
         except Exception as e:
-            logger.error(f"[handle] error req_id={req.get('id')}: {repr(e)}")
+            logger.error(f"[handle] error req_id={req.get('id')}: {PUBLIC} {repr(e)}")
             try:
                 await client.post(
                     f"{PUBLIC}/_response/{req['id']}",
@@ -98,7 +98,7 @@ async def fetch_worker(
             await asyncio.sleep(1)
 
         except Exception as e:
-            logger.error(f"[worker {worker_id}] error: {repr(e)}")
+            logger.error(f"[worker {worker_id}] error: {PUBLIC} {repr(e)}")
             await asyncio.sleep(1)
 
 
