@@ -22,6 +22,7 @@
 
 import base64
 import json
+import logging
 import math
 import re
 import socketio
@@ -79,6 +80,7 @@ class WebUI:
         self.last_image = {}
         self.tour_manager = tour_manager.TourManager()
         self.location_buffer = deque(maxlen=60 * 60)
+        logging.getLogger("werkzeug").disabled = True
 
         @app.route('/_health/')
         def health():

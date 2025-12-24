@@ -94,6 +94,9 @@ async def fetch_worker(
 
             asyncio.create_task(handle_request(client, req, sem))
 
+        except httpx.ConnectError:
+            await asyncio.sleep(1)
+
         except Exception as e:
             logger.error(f"[worker {worker_id}] error: {repr(e)}")
             await asyncio.sleep(1)
