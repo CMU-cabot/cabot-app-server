@@ -110,8 +110,17 @@ class WebUI:
                     )
                 )
                 self.last_data['imu_data'] = [{'roll': abs(math.degrees(roll)), 'pitch': abs(math.degrees(pitch))}]
-            key = request.args.get('key')
-            return jsonify({key: self.last_data.get(key, [])}) if key else jsonify(self.last_data)
+            return jsonify(
+                {
+                    'last_data': self.last_data,
+                    'camera_image': [
+                        {'image': self._get_camera_image(common.last_camera_left_image), 'position': 'left', 'transform': 'rotate(180deg)'},
+                        {'image': self._get_camera_image(common.last_camera_image), 'position': 'center', 'transform': 'rotate(180deg)'},
+                        {'image': self._get_camera_image(common.last_camera_right_image), 'position': 'right'},
+                    ],
+                    'custom_image': {'image': self._get_camera_image(common.last_rosmap_image)},
+                }
+            )
 
         @api.route('/past_locations/')
         def past_locations():
@@ -146,23 +155,6 @@ class WebUI:
                 common.last_localize_status = 0
             manage_cabot_char.callback(0, data.encode("utf-8"))
             return jsonify({'status': 'ok'})
-
-        @api.route('/camera_image/')
-        def camera_image():
-            return jsonify(
-                [
-                    {'image': self._get_camera_image(common.last_camera_left_image), 'position': 'left', 'transform': 'rotate(180deg)'},
-                    {'image': self._get_camera_image(common.last_camera_image), 'position': 'center', 'transform': 'rotate(180deg)'},
-                    {'image': self._get_camera_image(common.last_camera_right_image), 'position': 'right'},
-                ]
-            )
-
-        @api.route('/custom_image/')
-        def custom_image():
-            if common.last_rosmap_image:
-                image_data = self._get_camera_image(common.last_rosmap_image)
-                return jsonify({'image': image_data})
-            return {}
 
         app.register_blueprint(api)
 
