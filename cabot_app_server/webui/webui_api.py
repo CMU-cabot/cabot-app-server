@@ -77,7 +77,7 @@ class WebUI:
         self.last_data = defaultdict(list)
         self.tour_manager = tour_manager.TourManager()
         self.location_buffer = deque(maxlen=60 * 60)
-        logging.getLogger("werkzeug").disabled = True
+        logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
         api = Blueprint("api", __name__, url_prefix="/api")
 
