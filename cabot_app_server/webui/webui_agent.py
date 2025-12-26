@@ -86,7 +86,7 @@ async def fetch_worker(
     sem: asyncio.Semaphore,
 ):
     next_timeout = httpx.Timeout(
-        connect=10.0,
+        connect=1.0,
         read=30.0,
         write=30.0,
         pool=5.0,
