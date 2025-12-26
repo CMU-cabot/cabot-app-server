@@ -112,8 +112,7 @@ class WebUI:
                     )
                 )
                 self.last_data['imu_data'] = [{'roll': abs(math.degrees(roll)), 'pitch': abs(math.degrees(pitch))}]
-            key = request.args.get('key')
-            return jsonify({key: self.last_data.get(key, [])}) if key else jsonify(self.last_data)
+            return jsonify(self.last_data)
 
         @api.route('/past_locations/')
         def past_locations():
@@ -161,10 +160,7 @@ class WebUI:
 
         @api.route('/custom_image/')
         def custom_image():
-            if common.last_rosmap_image:
-                image_data = self._get_camera_image(common.last_rosmap_image)
-                return jsonify({'image': image_data})
-            return {}
+            return jsonify({'image': self._get_camera_image(common.last_rosmap_image)})
 
         app.register_blueprint(api)
 
