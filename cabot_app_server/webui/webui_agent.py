@@ -57,7 +57,7 @@ async def handle_request(
                 content=req["body"],
             )
 
-            logger.info(f'client.post: {req["path"]}')
+            # logger.info(f'client.post: {req["path"]}')
             await client.post(
                 f"{PUBLIC}/_response/{req['id']}",
                 content=resp.content,
@@ -66,7 +66,7 @@ async def handle_request(
                     **filter_headers(resp.headers),
                 },
             )
-            logger.info(f'done: {req["path"]}')
+            # logger.info(f'done: {req["path"]}')
 
         except Exception as e:
             logger.error(f"[handle] error req_id={req.get('id')} path={req.get('path')}: {repr(e)}")
