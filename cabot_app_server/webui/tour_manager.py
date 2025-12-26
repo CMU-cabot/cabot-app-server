@@ -71,4 +71,30 @@ class TourManager:
         threading.Thread(target=self.background_task).start()
 
     def format_directories(self):
-        return {'sections': {lang: item.get('sections', []) for lang, item in self.directory.items()}} | {'features': self.features} | {k: v for k, v in self.tour_data.items()}
+        return (
+            {'sections': {lang: item.get('sections', []) for lang, item in self.directory.items()}}
+            | {'node_names': self.build_node_names(self.features)}
+            | {'destinations': self.tour_data.get('destinations')}
+            | {'tours': self.tour_data.get('tours')}
+        )
+
+    def build_node_names(self, features):
+        result = {}
+        for lang in ['ja', 'en', 'zh-CN']:
+            node_names = {}
+            for feature in features:
+                p = feature.get("properties") or {}
+                if p.get("facil_id"):
+                    name = p.get(f"name_{lang}")
+                    if name:
+                        for i in range(1, 10):
+                            node = p.get(f"ent{i}_node")
+                            if node:
+                                ent_name = p.get(f"ent{i}_n")
+                                if ent_name:
+                                    node_names[node] = f"{name} {ent_name}"
+                                else:
+                                    node_names[node] = name
+
+            result[lang] = node_names
+        return result
