@@ -29,6 +29,7 @@ import socketio
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 from flask import Flask, jsonify, request, Blueprint
+from flask_compress import Compress
 from tf_transformations import euler_from_quaternion
 import common
 import tcp
@@ -78,6 +79,7 @@ class WebUI:
         self.tour_manager = tour_manager.TourManager()
         self.location_buffer = deque(maxlen=60 * 60)
         logging.getLogger("werkzeug").setLevel(logging.WARNING)
+        Compress(app)
 
         api = Blueprint("api", __name__, url_prefix="/api")
 
