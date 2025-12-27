@@ -26,11 +26,13 @@ import logging
 import math
 import re
 import socketio
+import io
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 from flask import Flask, jsonify, request, Blueprint
 from flask_compress import Compress
 from tf_transformations import euler_from_quaternion
+from PIL import Image
 import common
 import tcp
 import tour_manager
@@ -152,9 +154,9 @@ class WebUI:
         def camera_image():
             return jsonify(
                 [
-                    {'image': self._get_camera_image(common.last_camera_left_image), 'position': 'left', 'transform': 'rotate(180deg)'},
-                    {'image': self._get_camera_image(common.last_camera_image), 'position': 'center', 'transform': 'rotate(180deg)'},
-                    {'image': self._get_camera_image(common.last_camera_right_image), 'position': 'right'},
+                    {'image': self._get_camera_image(common.last_camera_left_image, scale=0.5), 'position': 'left', 'transform': 'rotate(180deg)'},
+                    {'image': self._get_camera_image(common.last_camera_image, scale=0.5), 'position': 'center', 'transform': 'rotate(180deg)'},
+                    {'image': self._get_camera_image(common.last_camera_right_image, scale=0.5), 'position': 'right'},
                 ]
             )
 
@@ -214,11 +216,23 @@ class WebUI:
         common.logger.info("WebUI listening...")
         start_agent()
 
-    def _get_camera_image(self, msg):
+    def _get_camera_image(self, msg, scale: float = 1.0):
         if not msg:
             return ""
+
         m = re.search(r" (.*) compressed", msg.format)
-        return f"data:image/{m and m[1] or 'jpg'};base64,{base64.b64encode(msg.data).decode()}"
+        fmt = (m and m[1]) or "jpg"
+        data = msg.data
+
+        if scale == 1.0:
+            return f"data:image/{fmt};base64,{base64.b64encode(data).decode()}"
+
+        with Image.open(io.BytesIO(data)) as img:
+            w, h = img.size
+            img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+            out = io.BytesIO()
+            img.save(out, format=img.format or fmt.upper())
+            return f"data:image/{fmt};base64,{base64.b64encode(out.getvalue()).decode()}"
 
     def _track_event(self, event, data, emit=False):
         if isinstance(data, list) and len(data) == 1:
