@@ -49,24 +49,27 @@ async def handle_request(
 ):
     async with sem:
         try:
-            resp = await client.request(
+            # logger.info(f"{req['path']}: {req}")
+            async with client.stream(
                 req["method"],
                 LOCAL + req["path"],
                 params=req["query"],
                 headers=req["headers"],
                 content=req["body"],
-            )
-
-            # logger.info(f'client.post: {req["path"]}')
-            await client.post(
-                f"{PUBLIC}/_response/{req['id']}",
-                content=resp.content,
-                headers={
-                    "X-Status": str(resp.status_code),
-                    **filter_headers(resp.headers),
-                },
-            )
-            # logger.info(f'done: {req["path"]}')
+            ) as resp:
+                status = resp.status_code
+                headers = dict(resp.headers)
+                body = b"".join([chunk async for chunk in resp.aiter_raw()])
+                # logger.info(f"{req['path']}: post _response")
+                await client.post(
+                    f"{PUBLIC}/_response/{req['id']}",
+                    content=body,
+                    headers={
+                        "X-Status": str(status),
+                        **filter_headers(headers),
+                    },
+                )
+                # logger.info(f"{req['path']}: done")
 
         except Exception as e:
             logger.error(f"[handle] error req_id={req.get('id')} path={req.get('path')}: {repr(e)}")
