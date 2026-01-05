@@ -26,7 +26,7 @@ import logging
 import os
 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("agent")
 logger.setLevel(logging.INFO)
 
@@ -34,8 +34,7 @@ PUBLIC = os.getenv("CABOT_WEBUI_PUBLIC")
 LOCAL = os.getenv("CABOT_WEBUI_LOCAL", "http://localhost:5000")
 CABOT_NAME = os.getenv("CABOT_NAME", "UNKNOWN")
 
-WORKERS = 4
-MAX_INFLIGHT = 4
+WORKERS = 8
 
 
 def filter_headers(headers: dict) -> dict:
@@ -45,48 +44,43 @@ def filter_headers(headers: dict) -> dict:
 async def handle_request(
     client: httpx.AsyncClient,
     req: dict,
-    sem: asyncio.Semaphore,
 ):
-    async with sem:
-        try:
-            # logger.info(f"{req['path']}: {req}")
-            async with client.stream(
-                req["method"],
-                LOCAL + req["path"],
-                params=req["query"],
-                headers=req["headers"],
-                content=req["body"],
-            ) as resp:
-                status = resp.status_code
-                headers = dict(resp.headers)
-                body = b"".join([chunk async for chunk in resp.aiter_raw()])
-                # logger.info(f"{req['path']}: post _response")
-                await client.post(
-                    f"{PUBLIC}/_response/{req['id']}",
-                    content=body,
-                    headers={
-                        "X-Status": str(status),
-                        **filter_headers(headers),
-                    },
-                )
-                # logger.info(f"{req['path']}: done")
+    try:
+        async with client.stream(
+            req["method"],
+            LOCAL + req["path"],
+            params=req["query"],
+            headers=req["headers"],
+            content=req["body"],
+        ) as resp:
+            status = resp.status_code
+            headers = dict(resp.headers)
+            body = b"".join([chunk async for chunk in resp.aiter_raw()])
 
-        except Exception as e:
-            logger.error(f"[handle] error req_id={req.get('id')} path={req.get('path')}: {repr(e)}")
-            try:
-                await client.post(
-                    f"{PUBLIC}/_response/{req['id']}",
-                    headers={"X-Status": "502"},
-                    content=b"agent error",
-                )
-            except Exception:
-                pass
+        await client.post(
+            f"{PUBLIC}/_response/{req['id']}",
+            content=body,
+            headers={
+                "X-Status": str(status),
+                **filter_headers(headers),
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"[handle] error req_id={req.get('id')} " f"path={req.get('path')}: {repr(e)}")
+        try:
+            await client.post(
+                f"{PUBLIC}/_response/{req['id']}",
+                headers={"X-Status": "502"},
+                content=b"agent error",
+            )
+        except Exception:
+            pass
 
 
 async def fetch_worker(
     worker_id: int,
     client: httpx.AsyncClient,
-    sem: asyncio.Semaphore,
 ):
     next_timeout = httpx.Timeout(
         connect=1.0,
@@ -103,7 +97,7 @@ async def fetch_worker(
             r.raise_for_status()
             req = r.json()
 
-            asyncio.create_task(handle_request(client, req, sem))
+            await handle_request(client, req)
 
         except httpx.ConnectError:
             await asyncio.sleep(1)
@@ -114,8 +108,6 @@ async def fetch_worker(
 
 
 async def run():
-    sem = asyncio.Semaphore(MAX_INFLIGHT)
-
     timeout = httpx.Timeout(
         connect=10.0,
         read=30.0,
@@ -124,7 +116,7 @@ async def run():
     )
 
     async with httpx.AsyncClient(timeout=timeout, headers={"X-CaBot-Name": CABOT_NAME}) as client:
-        workers = [asyncio.create_task(fetch_worker(i, client, sem)) for i in range(WORKERS)]
+        workers = [asyncio.create_task(fetch_worker(i, client)) for i in range(WORKERS)]
         await asyncio.gather(*workers)
 
 
