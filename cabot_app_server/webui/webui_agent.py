@@ -34,7 +34,7 @@ PUBLIC = os.getenv("CABOT_WEBUI_PUBLIC")
 LOCAL = os.getenv("CABOT_WEBUI_LOCAL", "http://localhost:5000")
 CABOT_NAME = os.getenv("CABOT_NAME", "UNKNOWN")
 
-WORKERS = 8
+WORKERS = 4
 
 
 def filter_headers(headers: dict) -> dict:
