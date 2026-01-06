@@ -62,6 +62,8 @@ services:
       - CABOT_ID_FILE
       - CABOT_USE_BLE
       - CABOT_USE_TCP
+      - CABOT_USE_WEBUI
+      - CABOT_WEBUI_PUBLIC
       - LIDAR_IF
       - LIDAR_IP
       - ARPSCAN_LIDAR

@@ -39,14 +39,15 @@ from rclpy.time import Time
 from std_msgs.msg import String, Int16
 from diagnostic_msgs.msg import DiagnosticArray
 from rosidl_runtime_py.convert import message_to_ordereddict
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import CompressedImage, Imu
 from tf_transformations import euler_from_quaternion
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from geometry_msgs.msg import Quaternion
+from geometry_msgs.msg import Quaternion, Twist
 
 from mf_localization_msgs.srv import MFTrigger
 from mf_localization_msgs.srv import RestartLocalization
+from mf_localization_msgs.msg import MFLocalizeStatus
 from cabot_msgs.msg import Log, PoseLog2
 
 from cabot_common import util
@@ -80,6 +81,17 @@ message_buffer = deque(maxlen=10)
 last_camera_image: CompressedImage = None
 last_camera_orientation: Quaternion = None
 last_location: PoseLog2 = None
+
+# for WebUI
+touch_buffer = deque(maxlen=30)
+cmd_vel_buffer = deque(maxlen=30)
+last_camera_left_image: CompressedImage = None
+last_camera_left_orientation: Quaternion = None
+last_camera_right_image: CompressedImage = None
+last_camera_right_orientation: Quaternion = None
+last_rosmap_image: CompressedImage = None
+last_localize_status = MFLocalizeStatus.UNKNOWN
+last_imu_data: Imu = None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -217,6 +229,11 @@ class CabotManageChar(BLESubChar):
             self.manager.enableWiFi(False)
         if value == "release_emergencystop":
             self.manager.releaseEmergencystop()
+        if value in ["resume", "pause", "idle", "speedup", "speeddown"]:
+            event = NavigationEvent(subtype=value)
+            msg = String()
+            msg.data = str(event)
+            cabot_node_common.pub_node.cabot_event_pub.publish(msg)
         if value.startswith("lang"):
             lang = value[5:]
             event = NavigationEvent(subtype="language", param=lang)
@@ -443,6 +460,7 @@ class EventChars(BLENotifyChar):
             logger.error("cabot event %s cannot be parsed", msg['data'])
             return
 
+        self.handleAnyEventCallback(request_id, event)
         if event.type != NavigationEvent.TYPE:
             return
 
@@ -458,6 +476,9 @@ class EventChars(BLENotifyChar):
         }
         jsonText = json.dumps(req, separators=(',', ':'))
         self.send_text(self.navi_uuid, jsonText)
+
+    def handleAnyEventCallback(self, request_id, event):
+        pass
 
 
 class TouchChars(BLENotifyChar):
@@ -665,6 +686,16 @@ class CabotNode_Sub(Node):
         self.camera_image_sub = self.create_subscription(CompressedImage, '/camera/color/image_raw/compressed', self.camera_image_callback, 10)
         self.rs1_image_sub = self.create_subscription(CompressedImage, '/rs1/color/image_raw/compressed', self.camera_image_callback, 10)
         self.location_sub = self.create_subscription(PoseLog2, '/cabot/pose_log2', self.location_callback, 10)
+        if os.getenv('CABOT_USE_WEBUI') == '1':
+            logger.info("Subscribe to topics for WebUI")
+            self.rs2_image_sub = self.create_subscription(CompressedImage, '/rs2/color/image_raw/compressed', self.camera_right_image_callback, 10)
+            self.rs3_image_sub = self.create_subscription(CompressedImage, '/rs3/color/image_raw/compressed', self.camera_left_image_callback, 10)
+            self.rosmap_image_sub = self.create_subscription(CompressedImage, '/rosmap_image/compressed', self.rosmap_image_callback, 10)
+            self.localize_status_sub = self.create_subscription(MFLocalizeStatus, "/localize_status", self.localize_status_callback, 10)
+            self.cmd_vel_sub = self.create_subscription(Twist, '/cabot/cmd_vel', self.cmd_vel_callback, 10)
+            self.imu_sub = self.create_subscription(Imu, '/cabot/imu/data', self.imu_callback, 10)
+
+
 
     def diagnostic_agg_callback(self, msg):
         global diagnostics
@@ -700,6 +731,7 @@ class CabotNode_Sub(Node):
 
     def cabot_touch_callback(self, msg):
         message_buffer.append(msg.data)
+        touch_buffer.append(msg)
 
     def camera_image_callback(self, msg):
         global last_camera_image, last_camera_orientation
@@ -714,6 +746,37 @@ class CabotNode_Sub(Node):
     def location_callback(self, msg):
         global last_location
         last_location = msg
+
+    def camera_left_image_callback(self, msg):
+        global last_camera_left_image, last_camera_left_orientation
+        last_camera_left_image = msg
+        try:
+            last_camera_left_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
+        except:  # noqa: E722
+            pass
+
+    def camera_right_image_callback(self, msg):
+        global last_camera_right_image, last_camera_right_orientation
+        last_camera_right_image = msg
+        try:
+            last_camera_right_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
+        except:  # noqa: E722
+            pass
+
+    def rosmap_image_callback(self, msg):
+        global last_rosmap_image
+        last_rosmap_image = msg
+
+    def localize_status_callback(self, msg):
+        global last_localize_status
+        last_localize_status = msg.status
+
+    def cmd_vel_callback(self, msg):
+        cmd_vel_buffer.append(msg)
+
+    def imu_callback(self, msg):
+        global last_imu_data
+        last_imu_data = msg
 
 
 class CabotNode_Common():
