@@ -36,7 +36,7 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.clock import Clock, ClockType
 from rclpy.time import Time
-from std_msgs.msg import String, Int16
+from std_msgs.msg import String, Int16, Bool, Float32
 from diagnostic_msgs.msg import DiagnosticArray
 from rosidl_runtime_py.convert import message_to_ordereddict
 from sensor_msgs.msg import CompressedImage, Imu
@@ -92,6 +92,8 @@ last_camera_right_orientation: Quaternion = None
 last_rosmap_image: CompressedImage = None
 last_localize_status = MFLocalizeStatus.UNKNOWN
 last_imu_data: Imu = None
+last_pause_control: Bool = None
+last_user_speed: Float32 = None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -694,8 +696,9 @@ class CabotNode_Sub(Node):
             self.localize_status_sub = self.create_subscription(MFLocalizeStatus, "/localize_status", self.localize_status_callback, 10)
             self.cmd_vel_sub = self.create_subscription(Twist, '/cabot/cmd_vel', self.cmd_vel_callback, 10)
             self.imu_sub = self.create_subscription(Imu, '/cabot/imu/data', self.imu_callback, 10)
-
-
+            self.activity_log_sub = self.create_subscription(Log, '/cabot/activity_log', self.activity_log_callback, 10)
+            self.pause_control_sub = self.create_subscription(Bool, '/cabot/pause_control', self.pause_control_callback, 10)
+            self.user_speed_sub = self.create_subscription(Float32, '/cabot/user_speed', self.user_speed_callback, 10)
 
     def diagnostic_agg_callback(self, msg):
         global diagnostics
@@ -777,6 +780,20 @@ class CabotNode_Sub(Node):
     def imu_callback(self, msg):
         global last_imu_data
         last_imu_data = msg
+
+    def activity_log_callback(self, msg):
+        self.activity_log_handler(msg)
+
+    def activity_log_handler(self, msg):
+        pass
+
+    def pause_control_callback(self, msg):
+        global last_pause_control
+        last_pause_control = msg
+
+    def user_speed_callback(self, msg):
+        global last_user_speed
+        last_user_speed = msg
 
 
 class CabotNode_Common():

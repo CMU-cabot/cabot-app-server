@@ -59,6 +59,9 @@ class WebUI:
     TIMESTAMP_HISTORY_EVENTS = {
         'destination',
         'button',
+        'activity_cabot_navigation',
+        'activity_cabot_interface',
+        'activity_cabot_event',
     }
 
     IGNORE_EVENTS = {
@@ -70,6 +73,17 @@ class WebUI:
         'camera_orientation',
         'device_status',
         'system_status',
+    }
+
+    NAVIGATION_STATES = {
+        'pause_control',
+        'resume',
+        'retry',
+        'pause',
+        'cancel',
+        'completed',
+        'navigate_to_pose',
+        'go_to_floor',
     }
 
     def __init__(self, server: tcp.CaBotTCP):
@@ -99,8 +113,16 @@ class WebUI:
             self.last_data['average_touch'] = [sum(abs(obj.data) for obj in touch_buffer) / len(touch_buffer) if touch_buffer else -1]
             self.last_data['average_speed'] = [sum(abs(obj.linear.x) for obj in cmd_vel_buffer) / len(cmd_vel_buffer) if cmd_vel_buffer else -1]
             self.last_data['localize_status'] = [common.last_localize_status]
+            localize_history = self.last_data.get('localize_history', [])
+            if not localize_history or localize_history[-1].get('data') != common.last_localize_status:
+                localize_history.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': common.last_localize_status})
+                self.last_data['localize_history'] = localize_history[-10:]
             self.last_data['device_status'] = [cabot_manager.device_status().json]
             self.last_data['system_status'] = [cabot_manager.cabot_system_status().json]
+            if common.last_pause_control is not None:
+                self.last_data['pause_control'] = [common.last_pause_control.data]
+            if common.last_user_speed is not None:
+                self.last_data['user_speed'] = [common.last_user_speed.data]
             msg, common.last_imu_data = common.last_imu_data, None
             if msg is None:
                 self.last_data.pop('imu_data', None)
@@ -170,6 +192,7 @@ class WebUI:
         original_emit = sio.emit
         original_handler = sio._handle_event_internal
         original_event_char_callback = server.event_char.handleAnyEventCallback
+        original_activity_log_handler = common.cabot_node_common.sub_node.activity_log_handler
 
         def emit_wrap(event, data=None, to=None, **kw):
             self._track_event(event, data, emit=True)
@@ -208,9 +231,41 @@ class WebUI:
                 )
             return original_event_char_callback(request_id, event)
 
+        def activity_log_wrap(msg):
+            if msg.category == 'cabot/navigation':
+                if msg.text in self.NAVIGATION_STATES:
+                    lst = self.last_data.get('activity_cabot_navigation', [])
+                    data = lst[-1].get('data') if lst else None
+                    if not data or data.get('text') != msg.text or data.get('memo') != msg.memo:
+                        self._track_event(
+                            'activity_cabot_navigation',
+                            {
+                                'text': msg.text,
+                                'memo': msg.memo,
+                            },
+                        )
+            # elif msg.category == 'cabot/interface':
+            #     self._track_event(
+            #         'activity_cabot_interface',
+            #         {
+            #             'text': msg.text,
+            #             'memo': msg.memo,
+            #         },
+            #     )
+            # elif msg.category == 'cabot/event':
+            #     self._track_event(
+            #         'activity_cabot_event',
+            #         {
+            #             'text': msg.text,
+            #             'memo': msg.memo,
+            #         },
+            #     )
+            return original_activity_log_handler(msg)
+
         sio.emit = emit_wrap
         sio._handle_event_internal = handler_wrap
         server.event_char.handleAnyEventCallback = event_char_wrap
+        common.cabot_node_common.sub_node.activity_log_handler = activity_log_wrap
 
         self.tour_manager.load()
         common.logger.info("WebUI listening...")
