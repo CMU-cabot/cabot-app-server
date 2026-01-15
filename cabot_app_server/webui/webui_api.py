@@ -297,6 +297,9 @@ class WebUI:
         except Exception:
             pass
 
+        if event == 'location' and common.last_pause_control is not None:
+            data['pause_control'] = common.last_pause_control.data
+
         if event == 'navigate' and data.get('type') == 'arrived':
             # self.last_data['destination'].append('__arrived__')
             self.last_data['destination'].append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': '__arrived__'})
