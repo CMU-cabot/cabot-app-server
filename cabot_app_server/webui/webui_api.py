@@ -57,8 +57,10 @@ class WebUI:
     }
 
     TIMESTAMP_HISTORY_EVENTS = {
+        'share.Speak',
         'destination',
         'button',
+        'localize_history',
         'activity_cabot_navigation',
         'activity_cabot_interface',
         'activity_cabot_event',
@@ -116,7 +118,7 @@ class WebUI:
             localize_history = self.last_data.get('localize_history', [])
             if not localize_history or localize_history[-1].get('data') != common.last_localize_status:
                 localize_history.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': common.last_localize_status})
-                self.last_data['localize_history'] = localize_history[-10:]
+                self.last_data['localize_history'] = self.filter_timestamp(localize_history)
             self.last_data['device_status'] = [cabot_manager.device_status().json]
             self.last_data['system_status'] = [cabot_manager.cabot_system_status().json]
             if common.last_pause_control is not None:
@@ -136,6 +138,9 @@ class WebUI:
                     )
                 )
                 self.last_data['imu_data'] = [{'roll': abs(math.degrees(roll)), 'pitch': abs(math.degrees(pitch))}]
+            for key in self.TIMESTAMP_HISTORY_EVENTS:
+                if key in self.last_data:
+                    self.last_data[key] = self.filter_timestamp(self.last_data[key])
             return jsonify(self.last_data)
 
         @api.route('/past_locations/')
@@ -271,6 +276,23 @@ class WebUI:
         common.logger.info("WebUI listening...")
         start_agent()
 
+    def filter_timestamp(self, data_list, limit_seconds: float = 1 * 60):
+        common.logger.info(f"filter_timestamp {limit_seconds}")
+        cutoff = datetime.now(timezone.utc).timestamp() - limit_seconds
+        result = []
+        for item in data_list:
+            timestamp_str = item.get('timestamp')
+            if not timestamp_str:
+                continue
+            try:
+                timestamp = datetime.fromisoformat(timestamp_str).timestamp()
+                common.logger.info(f"{timestamp} >= {cutoff}")
+                if timestamp >= cutoff:
+                    result.append(item)
+            except Exception:
+                continue
+        return result
+
     def _get_camera_image(self, msg, scale: float = 1.0):
         if not msg:
             return ""
@@ -318,7 +340,7 @@ class WebUI:
                     lst = self.last_data[event_type]
                     # lst.append(value)
                     lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': value})
-                    self.last_data[event_type] = lst[-10:]
+                    self.last_data[event_type] = self.filter_timestamp(lst)
                 return
 
             if event_type == 'share.ChatStatus':
@@ -361,7 +383,7 @@ class WebUI:
         if event in self.TIMESTAMP_HISTORY_EVENTS:
             lst = self.last_data[event]
             lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': data})
-            self.last_data[event] = lst[-10:]
+            self.last_data[event] = self.filter_timestamp(lst)
             return
 
         if event not in self.IGNORE_EVENTS:
