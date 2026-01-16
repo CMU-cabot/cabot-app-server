@@ -55,14 +55,15 @@ class TourManager:
                 if dist and lat and lng:
                     self.landmarks = requests.get(self.START_URL.format(lat=lat, lng=lng, dist=dist)).json()
                     self.features = requests.get(self.FEATURES_URL).json()
-                    common.logger.info(f"{len(self.features)} features")
-                    self.tour_data = requests.get(self.TOURDATA_URL).json()
-                    common.logger.info(f"{len(self.tour_data.get('tours', []))} tours, {len(self.tour_data.get('destinations', []))} destinations")
-                    for lang in ['ja', 'en', 'zh-CN']:
-                        directory = requests.get(self.DIRECTORY_URL.format(lat=lat, lng=lng, dist=dist, lang=lang)).json()
-                        common.logger.info(f"lang={lang}, {len(directory.get('landmarks', []))} landmarks, {len(directory.get('sections', []))} sections")
-                        self.directory[lang] = directory
-                    return
+                    if self.features:
+                        common.logger.info(f"{len(self.features)} features")
+                        self.tour_data = requests.get(self.TOURDATA_URL).json()
+                        common.logger.info(f"{len(self.tour_data.get('tours', []))} tours, {len(self.tour_data.get('destinations', []))} destinations")
+                        for lang in ['ja', 'en', 'zh-CN']:
+                            directory = requests.get(self.DIRECTORY_URL.format(lat=lat, lng=lng, dist=dist, lang=lang)).json()
+                            common.logger.info(f"lang={lang}, {len(directory.get('landmarks', []))} landmarks, {len(directory.get('sections', []))} sections")
+                            self.directory[lang] = directory
+                        return
             except Exception as e:
                 common.logger.warning(f"TourManager background_task retry {retry}: {e}")
             time.sleep(5)

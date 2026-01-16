@@ -40,6 +40,9 @@ import tour_manager
 
 class WebUI:
 
+    MAX_HISTORY_SIZE = 10
+    MAX_TIMESTAMP_SIZE = 50
+
     SIMPLE_LAST_EVENTS = {
         'cabot_name',
         'cabot_version',
@@ -116,7 +119,7 @@ class WebUI:
             localize_history = self.last_data.get('localize_history', [])
             if not localize_history or localize_history[-1].get('data') != common.last_localize_status:
                 localize_history.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': common.last_localize_status})
-                self.last_data['localize_history'] = localize_history[-10:]
+                self.last_data['localize_history'] = localize_history[-self.MAX_TIMESTAMP_SIZE:]
             self.last_data['device_status'] = [cabot_manager.device_status().json]
             self.last_data['system_status'] = [cabot_manager.cabot_system_status().json]
             if common.last_pause_control is not None:
@@ -318,7 +321,7 @@ class WebUI:
                     lst = self.last_data[event_type]
                     # lst.append(value)
                     lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': value})
-                    self.last_data[event_type] = lst[-10:]
+                    self.last_data[event_type] = lst[-self.MAX_TIMESTAMP_SIZE:]
                 return
 
             if event_type == 'share.ChatStatus':
@@ -355,13 +358,13 @@ class WebUI:
         if event in self.SIMPLE_HISTORY_EVENTS:
             lst = self.last_data[event]
             lst.append(data)
-            self.last_data[event] = lst[-10:]
+            self.last_data[event] = lst[-self.MAX_HISTORY_SIZE:]
             return
 
         if event in self.TIMESTAMP_HISTORY_EVENTS:
             lst = self.last_data[event]
             lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': data})
-            self.last_data[event] = lst[-10:]
+            self.last_data[event] = lst[-self.MAX_TIMESTAMP_SIZE:]
             return
 
         if event not in self.IGNORE_EVENTS:
