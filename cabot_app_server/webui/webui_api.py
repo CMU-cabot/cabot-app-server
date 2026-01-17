@@ -189,6 +189,11 @@ class WebUI:
         def custom_image():
             return jsonify({'image': self._get_camera_image(common.last_rosmap_image)})
 
+        @api.route('/reset_tour_manager/')
+        def reset_tour_manager():
+            self.tour_manager.load()
+            return jsonify({'status': 'ok'})
+
         app.register_blueprint(api)
 
         # Socket.IO Wrappers
