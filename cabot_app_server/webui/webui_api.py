@@ -49,6 +49,7 @@ class WebUI:
         'elevator_settings',
         'battery_status',
         'location',
+        'signal_response_intersection_status',
     }
 
     SIMPLE_HISTORY_EVENTS = {
