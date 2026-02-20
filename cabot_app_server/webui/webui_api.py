@@ -36,6 +36,7 @@ from PIL import Image
 import common
 import tcp
 import tour_manager
+from param_poller import ParamPoller
 
 
 class WebUI:
@@ -103,12 +104,25 @@ class WebUI:
 
         api = Blueprint("api", __name__, url_prefix="/api")
 
+        def on_offset_sign(value):
+            if value is not None:
+                self.last_data['footprint_offset_sign'] = [value]
+            else:
+                self.last_data.pop('footprint_offset_sign', None)
+
+        self.param_poller = ParamPoller(
+            target_node_name="/footprint_publisher",
+            param_name="offset_sign",
+            result_callback=on_offset_sign
+        )
+
         @api.route('/health/')
         def health():
             return jsonify({'status': 'ok'})
 
         @api.route('/last_data/')
         def last_data():
+            self.param_poller.poll()
             touch_buffer = list(common.touch_buffer)
             common.touch_buffer.clear()
             cmd_vel_buffer = list(common.cmd_vel_buffer)
