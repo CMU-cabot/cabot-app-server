@@ -74,6 +74,7 @@ class TourManager:
     def format_directories(self):
         return (
             {'sections': {lang: item.get('sections', []) for lang, item in self.directory.items()}}
+            | {'features': self.features}
             | {'node_names': self.build_node_names(self.features)}
             | {'destinations': self.tour_data.get('destinations')}
             | {'tours': self.tour_data.get('tours')}
