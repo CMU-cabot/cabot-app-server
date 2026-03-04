@@ -95,6 +95,7 @@ class WebUI:
         app: Flask = server.app
         sio: socketio.Server = server.sio
         manage_cabot_char = server.manage_cabot_char
+        destination_char = server.destination_char
         cabot_manager = server.cabot_manager
         self.last_data = defaultdict(list)
         self.tour_manager = tour_manager.TourManager()
@@ -154,6 +155,7 @@ class WebUI:
                     )
                 )
                 self.last_data['imu_data'] = [{'roll': abs(math.degrees(roll)), 'pitch': abs(math.degrees(pitch))}]
+            self.last_data['api_version'] = 1.1
             return jsonify(self.last_data)
 
         @api.route('/past_locations/')
@@ -188,6 +190,17 @@ class WebUI:
             if data == 'restart_localization':
                 common.last_localize_status = 0
             manage_cabot_char.callback(0, data.encode("utf-8"))
+            return jsonify({'status': 'ok'})
+
+        @api.route('/destination/', methods=['POST'])
+        def destination():
+            body = request.get_json()
+            data = body.get("data")
+            if data is None:
+                return jsonify({'error': 'data parameter is required'}), 400
+
+            common.logger.info(f"/destination/ data={data}")
+            destination_char.callback(0, data.encode("utf-8"))
             return jsonify({'status': 'ok'})
 
         @api.route('/camera_image/')
