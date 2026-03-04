@@ -32,11 +32,13 @@ class TourManager:
     CONFIG_URL = 'http://localhost:9090/map/api/config'
     START_URL = 'http://localhost:9090/map/routesearch?action=start&lat={lat}&lng={lng}&dist={dist}&user=cabot'
     FEATURES_URL = 'http://localhost:9090/map/routesearch?action=features&user=cabot'
+    NODEMAP_URL = 'http://localhost:9090/map/routesearch?action=nodemap&user=cabot'
     TOURDATA_URL = 'http://localhost:9090/map/cabot/tourdata.json'
     DIRECTORY_URL = 'http://localhost:9090/query/directory?user=cabot&lat={lat}&lng={lng}&dist={dist}&lang={lang}'
 
     def __init__(self):
         self.features = []
+        self.nodemap = {}
         self.tour_data = {}
         self.directory = {}
 
@@ -55,8 +57,9 @@ class TourManager:
                 if dist and lat and lng:
                     self.landmarks = requests.get(self.START_URL.format(lat=lat, lng=lng, dist=dist)).json()
                     self.features = requests.get(self.FEATURES_URL).json()
-                    if self.features:
-                        common.logger.info(f"{len(self.features)} features")
+                    self.nodemap = requests.get(self.NODEMAP_URL).json()
+                    if self.features and self.nodemap:
+                        common.logger.info(f"{len(self.features)} features, {len(self.nodemap)} nodemap")
                         self.tour_data = requests.get(self.TOURDATA_URL).json()
                         common.logger.info(f"{len(self.tour_data.get('tours', []))} tours, {len(self.tour_data.get('destinations', []))} destinations")
                         for lang in ['ja', 'en', 'zh-CN']:
@@ -75,6 +78,7 @@ class TourManager:
         return (
             {'sections': {lang: item.get('sections', []) for lang, item in self.directory.items()}}
             | {'features': self.features}
+            | {'nodemap': self.nodemap}
             | {'node_names': self.build_node_names(self.features)}
             | {'destinations': self.tour_data.get('destinations')}
             | {'tours': self.tour_data.get('tours')}
