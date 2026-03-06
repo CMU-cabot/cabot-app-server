@@ -229,6 +229,13 @@ class CabotManageChar(BLESubChar):
             self.manager.enableWiFi(True)
         if value == "disablewifi":
             self.manager.enableWiFi(False)
+        if value.startswith("ignore-people:"):
+            val = value.split(":", 1)[1].strip().lower()
+            if val in {"on", "off"}:
+                event = NavigationEvent(subtype="ignore_people", param=val)
+                msg = String()
+                msg.data = str(event)
+                cabot_node_common.pub_node.cabot_event_pub.publish(msg)
         if value == "release_emergencystop":
             self.manager.releaseEmergencystop()
         if value in ["resume", "pause", "idle", "speedup", "speeddown"]:
@@ -467,7 +474,7 @@ class EventChars(BLENotifyChar):
             return
 
         if event.subtype not in [
-            "next", "arrived", "content", "sound", "getlanguage", "gethandleside", "gettouchmode",
+            "next", "arrived", "content", "sound", "getlanguage", "gethandleside", "gettouchmode", "getignorepeople",
             "getspeakeraudiofiles", "togglespeakstate", "toggleconversation", "getelevatorsettings"
         ]:
             return
