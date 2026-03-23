@@ -229,10 +229,10 @@ class CabotManageChar(BLESubChar):
             self.manager.enableWiFi(True)
         if value == "disablewifi":
             self.manager.enableWiFi(False)
-        if value.startswith("ignore-people:"):
+        if value.startswith("follow-exact-path:"):
             val = value.split(":", 1)[1].strip().lower()
             if val in {"on", "off"}:
-                event = NavigationEvent(subtype="ignore_people", param=val)
+                event = NavigationEvent(subtype="follow_exact_path", param=val)
                 msg = String()
                 msg.data = str(event)
                 cabot_node_common.pub_node.cabot_event_pub.publish(msg)
@@ -474,7 +474,7 @@ class EventChars(BLENotifyChar):
             return
 
         if event.subtype not in [
-            "next", "arrived", "content", "sound", "getlanguage", "gethandleside", "gettouchmode", "getignorepeople",
+            "next", "arrived", "content", "sound", "getlanguage", "gethandleside", "gettouchmode", "getfollowexactpath",
             "getspeakeraudiofiles", "togglespeakstate", "toggleconversation", "getelevatorsettings"
         ]:
             return
