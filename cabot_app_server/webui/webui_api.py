@@ -128,9 +128,12 @@ class WebUI:
             common.touch_buffer.clear()
             cmd_vel_buffer = list(common.cmd_vel_buffer)
             common.cmd_vel_buffer.clear()
+            lidar_speed_buffer = list(common.lidar_speed_buffer)
+            common.lidar_speed_buffer.clear()
             # common.logger.info(f"touch_buffer: {len(touch_buffer)}, cmd_vel_buffer: {len(cmd_vel_buffer)}")
             self.last_data['average_touch'] = [sum(abs(obj.data) for obj in touch_buffer) / len(touch_buffer) if touch_buffer else -1]
             self.last_data['average_speed'] = [sum(abs(obj.linear.x) for obj in cmd_vel_buffer) / len(cmd_vel_buffer) if cmd_vel_buffer else -1]
+            self.last_data['average_lidar_speed'] = [sum(abs(obj.data) for obj in lidar_speed_buffer) / len(lidar_speed_buffer) if lidar_speed_buffer else -1]
             self.last_data['localize_status'] = [common.last_localize_status]
             localize_history = self.last_data.get('localize_history', [])
             if not localize_history or localize_history[-1].get('data') != common.last_localize_status:

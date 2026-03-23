@@ -85,6 +85,7 @@ last_location: PoseLog2 = None
 # for WebUI
 touch_buffer = deque(maxlen=30)
 cmd_vel_buffer = deque(maxlen=30)
+lidar_speed_buffer = deque(maxlen=10)
 last_camera_left_image: CompressedImage = None
 last_camera_left_orientation: Quaternion = None
 last_camera_right_image: CompressedImage = None
@@ -699,6 +700,7 @@ class CabotNode_Sub(Node):
             self.activity_log_sub = self.create_subscription(Log, '/cabot/activity_log', self.activity_log_callback, 10)
             self.pause_control_sub = self.create_subscription(Bool, '/cabot/pause_control', self.pause_control_callback, 10)
             self.user_speed_sub = self.create_subscription(Float32, '/cabot/user_speed', self.user_speed_callback, 10)
+            self.lidar_speed_sub = self.create_subscription(Float32, '/cabot/lidar_speed', self.lidar_speed_callback, 10)
 
     def diagnostic_agg_callback(self, msg):
         global diagnostics
@@ -794,6 +796,9 @@ class CabotNode_Sub(Node):
     def user_speed_callback(self, msg):
         global last_user_speed
         last_user_speed = msg
+
+    def lidar_speed_callback(self, msg):
+        lidar_speed_buffer.append(msg)
 
 
 class CabotNode_Common():
