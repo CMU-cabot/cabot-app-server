@@ -82,7 +82,7 @@ RUN apt update && \
 	apt clean && \
 	rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /etc/apt/keyrings && \
-	curl -sSf https://librealsense.realsenseai.com/Debian/librealsenseai.asc | tee /etc/apt/keyrings/librealsenseai.pgp > /dev/null && \
+	curl -sSf https://librealsense.realsenseai.com/Debian/librealsenseai.asc | gpg --dearmor | tee /etc/apt/keyrings/librealsenseai.pgp > /dev/null && \
     echo "deb [signed-by=/etc/apt/keyrings/librealsenseai.pgp] https://librealsense.realsenseai.com/Debian/apt-repo `lsb_release -cs` main" | \
         tee /etc/apt/sources.list.d/librealsense.list
 RUN apt update && \
