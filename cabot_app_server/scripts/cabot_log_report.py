@@ -37,6 +37,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
 file_directory = "/opt/cabot/docker/home/.ros/log/"
+attachment_directory_name = "mobile_attachments"
+manifest_filename = "manifest.json"
 
 class LogReport:
     def __init__(self):
@@ -92,6 +94,72 @@ class LogReport:
             result = 0
         return result
 
+    def log_directory(self, cabot_log_name):
+        return os.path.join(file_directory, cabot_log_name)
+
+    def attachment_directory(self, cabot_log_name):
+        return os.path.join(self.log_directory(cabot_log_name), attachment_directory_name)
+
+    def manifest_path(self, cabot_log_name):
+        return os.path.join(self.attachment_directory(cabot_log_name), manifest_filename)
+
+    def normalize_attachments(self, attachments):
+        normalized = []
+        source = attachments or []
+        source = sorted(source, key=lambda item: (int(item.get("order", 0)), item.get("file_name", "")))
+        for index, attachment in enumerate(source, start=1):
+            file_name = os.path.basename(str(attachment.get("file_name", "")).strip())
+            if not file_name:
+                continue
+            original_name = str(attachment.get("original_name", file_name))
+            normalized.append({
+                "file_name": file_name,
+                "original_name": original_name,
+                "order": index
+            })
+        return normalized
+
+    def load_manifest(self, cabot_log_name):
+        manifest_path = self.manifest_path(cabot_log_name)
+        if not os.path.isfile(manifest_path):
+            return {"attachments": []}
+        try:
+            with open(manifest_path, "r") as manifest_file:
+                return json.load(manifest_file)
+        except Exception as exc:
+            logger.error(f"failed to load manifest {manifest_path}: {exc}")
+            return {"attachments": []}
+
+    def save_manifest(self, cabot_log_name, attachments):
+        os.makedirs(self.attachment_directory(cabot_log_name), exist_ok=True)
+        manifest_path = self.manifest_path(cabot_log_name)
+        with open(manifest_path, "w") as manifest_file:
+            json.dump({"attachments": attachments}, manifest_file)
+
+    def missing_attachment_names(self, cabot_log_name, attachments):
+        return [
+            attachment["file_name"]
+            for attachment in attachments
+            if not os.path.isfile(os.path.join(self.attachment_directory(cabot_log_name), attachment["file_name"]))
+        ]
+
+    def load_attachment_details(self, cabot_log_name):
+        manifest = self.load_manifest(cabot_log_name)
+        attachments = []
+        for attachment in manifest.get("attachments", []):
+            file_path = os.path.join(self.attachment_directory(cabot_log_name), attachment["file_name"])
+            if not os.path.isfile(file_path):
+                continue
+            with open(file_path, "rb") as attachment_file:
+                attachment_data = base64.b64encode(attachment_file.read()).decode("utf-8")
+            response_attachment = dict(attachment)
+            response_attachment["image_data"] = attachment_data
+            attachments.append(response_attachment)
+        return attachments
+
+    def asset_key(self, cabot_log_name, file_name, asset_type):
+        return f"{cabot_log_name}:{asset_type}:{file_name}"
+
     def response_log(self, request_json, callback):
         try:
             request = json.loads(request_json)
@@ -124,7 +192,6 @@ class LogReport:
                     "is_uploaded_to_box": is_uploaded_to_box
                 })
         elif request_type == "detail":
-            # TODO: get title and detail by log_name
             log_name = request["log_name"]
             (is_report_submitted, is_uploaded_to_box, title, detail) = self.getReport(log_name)
             response["log"] = {
@@ -132,65 +199,93 @@ class LogReport:
                 "title": title,
                 "detail": detail,
                 "is_report_submitted": is_report_submitted == "1",
-                "is_uploaded_to_box": is_uploaded_to_box == "1"
+                "is_uploaded_to_box": is_uploaded_to_box == "1",
+                "attachments": self.load_attachment_details(log_name)
             }
         elif request_type == "report":
             title = request["title"]
             detail = request["detail"]
             name = request["log_name"]
             duration = self.getDuration(name)
+            attachments = self.normalize_attachments(request.get("attachments", []))
             self.makeReport(title, detail, name)
+            self.save_manifest(name, attachments)
             response["log"] = {
                 "name": name,
-                "nanoseconds": int(duration)
+                "nanoseconds": int(duration),
+                "missing_attachment_names": self.missing_attachment_names(name, attachments)
             }
         elif request_type == "data-chunk":
             chunk_data = request["data"]
-            app_log_name = request["appLogName"]
+            file_name = request.get("fileName") or request.get("appLogName")
+            asset_type = request.get("fileType", "appLog")
             chunk_index = request["chunkIndex"]
             cabot_log_name = request["cabotLogName"]
+            if not file_name:
+                logger.error(f"file name is missing in chunk request {request}")
+                return
             logger.info(f"chunk index of this queue is {chunk_index}")
-            file_path = file_directory + cabot_log_name + "/" + app_log_name
+            safe_file_name = os.path.basename(file_name)
+            if asset_type == "attachmentImage":
+                os.makedirs(self.attachment_directory(cabot_log_name), exist_ok=True)
+                file_path = os.path.join(self.attachment_directory(cabot_log_name), safe_file_name)
+            else:
+                file_path = os.path.join(self.log_directory(cabot_log_name), safe_file_name)
+            asset_key = self.asset_key(cabot_log_name, file_name, asset_type)
 
-            if app_log_name not in self.data_chunks:
-                self.data_chunks[app_log_name] = {
+            if asset_key not in self.data_chunks:
+                self.data_chunks[asset_key] = {
                     "chunks": {},   # {chunk_index : binary_data}
                     "count": 0,
-                    "decoder": codecs.getincrementaldecoder("utf-8")()
+                    "decoder": None if asset_type == "attachmentImage" else codecs.getincrementaldecoder("utf-8")(),
+                    "is_binary": asset_type == "attachmentImage"
                 }
-                
-                with open(file_path, "w") as f:
-                    pass    # empt
+
+                with open(file_path, "wb" if asset_type == "attachmentImage" else "w") as f:
+                    pass
 
             binary_data = base64.b64decode(chunk_data)
-            chunk_name = self.data_chunks[app_log_name]
-            if chunk_name["count"] == chunk_index:
-                self.write_text_with_decoder(file_path, binary_data, chunk_name["decoder"], False)
+            data_info = self.data_chunks[asset_key]
+            if data_info["count"] == chunk_index:
+                self.write_asset_chunk(file_path, binary_data, data_info, False)
 
-                chunk_name["count"] += 1
-                while chunk_name["count"] in chunk_name["chunks"]:
-                    chunk_count = chunk_name["count"]
-                    self.write_text_with_decoder(file_path, chunk_name["chunks"][chunk_count], chunk_name["decoder"], False)
-                    chunk_name["count"] += 1
-            elif chunk_name["count"] < chunk_index:
-                chunk_name["chunks"][chunk_index] = binary_data
+                data_info["count"] += 1
+                while data_info["count"] in data_info["chunks"]:
+                    chunk_count = data_info["count"]
+                    self.write_asset_chunk(file_path, data_info["chunks"][chunk_count], data_info, False)
+                    del data_info["chunks"][chunk_count]
+                    data_info["count"] += 1
+            elif data_info["count"] < chunk_index:
+                data_info["chunks"][chunk_index] = binary_data
 
             return
         elif request_type == "appLog":
-            app_log_name = request["appLogName"]
+            file_name = request.get("fileName") or request.get("appLogName")
             cabot_log_name = request["cabotLogName"]
+            asset_type = request.get("fileType", "appLog")
             total_chunks = request["totalChunks"]
+            is_last_file = request.get("isLastFile", False)
 
-            if app_log_name in self.data_chunks:
-                data_info = self.data_chunks[app_log_name]
-
-                if data_info["count"] == total_chunks:
-                    file_path = file_directory + cabot_log_name + "/" + app_log_name
-                    logger.info(f"app log save to {file_path}")
-                    self.write_text_with_decoder(file_path, b"", data_info["decoder"], True)
-
-                    del self.data_chunks[app_log_name]
+            if not file_name:
+                if is_last_file:
                     self.submitReport()
+                return
+
+            asset_key = self.asset_key(cabot_log_name, file_name, asset_type)
+            if asset_key in self.data_chunks:
+                data_info = self.data_chunks[asset_key]
+                if data_info["count"] == total_chunks:
+                    safe_file_name = os.path.basename(file_name)
+                    if asset_type == "attachmentImage":
+                        file_path = os.path.join(self.attachment_directory(cabot_log_name), safe_file_name)
+                    else:
+                        file_path = os.path.join(self.log_directory(cabot_log_name), safe_file_name)
+                    logger.info(f"asset save to {file_path}")
+                    self.write_asset_chunk(file_path, b"", data_info, True)
+
+                    del self.data_chunks[asset_key]
+                    if is_last_file:
+                        self.submitReport()
                 else:
                     self.add_to_queue(request_json, callback)
             return
@@ -202,7 +297,13 @@ class LogReport:
             logger.info(f"add to queue {request_json}")
         self.request_queue.put((request_json, callback))
 
-    def write_text_with_decoder(self, file_path, data, decoder, final):
-        text_part = decoder.decode(data, final=final)
+    def write_asset_chunk(self, file_path, data, data_info, final):
+        if data_info["is_binary"]:
+            if data:
+                with open(file_path, "ab") as f:
+                    f.write(data)
+            return
+
+        text_part = data_info["decoder"].decode(data, final=final)
         with open(file_path, "a") as f:
             f.write(text_part)
