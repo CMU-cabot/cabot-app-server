@@ -358,14 +358,14 @@ class WebUI:
                     # lst.append(value)
                     lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': value})
                     self.last_data[event_type] = lst[-self.MAX_TIMESTAMP_SIZE:]
-                    lst = self.last_data['share.SpeakProgress']
+                    lst = self.last_data['SpokenText']
                     lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': ''})
-                    self.last_data['share.SpeakProgress'] = lst[-self.MAX_TIMESTAMP_SIZE:]
+                    self.last_data['SpokenText'] = lst[-self.MAX_TIMESTAMP_SIZE:]
                 return
 
             if event_type == 'share.SpeakProgress':
                 if isinstance(value, str) and value and not emit:
-                    lst = self.last_data[event_type]
+                    lst = self.last_data['SpokenText']
                     pos = data.get("location", 0) + data.get("length", 0)
                     if lst and pos > 0:
                         lst[-1]['data'] = value[: pos]
