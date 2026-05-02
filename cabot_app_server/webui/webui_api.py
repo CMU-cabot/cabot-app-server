@@ -366,8 +366,9 @@ class WebUI:
             if event_type == 'share.SpeakProgress':
                 if isinstance(value, str) and value and not emit:
                     lst = self.last_data[event_type]
-                    if lst:
-                        lst[-1]['data'] = value[: data.get("location", 0) + data.get("length", 0)]
+                    pos = data.get("location", 0) + data.get("length", 0)
+                    if lst and pos > 0:
+                        lst[-1]['data'] = value[: pos]
                 return
 
             if event_type == 'share.ChatStatus':
