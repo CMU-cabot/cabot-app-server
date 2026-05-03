@@ -24,6 +24,7 @@ import base64
 import json
 import logging
 import math
+import os
 import re
 import socketio
 import io
@@ -92,12 +93,16 @@ class WebUI:
     }
 
     def __init__(self, server: tcp.CaBotTCP):
+        def truncate_env_value(value, max_length=50):
+            return f"{value[:max_length]}..." if len(value) > max_length else value
+
         app: Flask = server.app
         sio: socketio.Server = server.sio
         manage_cabot_char = server.manage_cabot_char
         destination_char = server.destination_char
         cabot_manager = server.cabot_manager
         self.last_data = defaultdict(list)
+        self.last_data['env'] = {key: truncate_env_value(value) for key, value in os.environ.items()}
         self.tour_manager = tour_manager.TourManager()
         self.location_buffer = deque(maxlen=60 * 60)
         logging.getLogger("werkzeug").setLevel(logging.WARNING)
