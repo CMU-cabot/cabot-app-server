@@ -24,6 +24,7 @@ import base64
 import json
 import logging
 import math
+import os
 import re
 import socketio
 import io
@@ -92,12 +93,16 @@ class WebUI:
     }
 
     def __init__(self, server: tcp.CaBotTCP):
+        def truncate_env_value(value, max_length=50):
+            return f"{value[:max_length]}..." if len(value) > max_length else value
+
         app: Flask = server.app
         sio: socketio.Server = server.sio
         manage_cabot_char = server.manage_cabot_char
         destination_char = server.destination_char
         cabot_manager = server.cabot_manager
         self.last_data = defaultdict(list)
+        self.last_data['env'] = {key: truncate_env_value(value) for key, value in os.environ.items()}
         self.tour_manager = tour_manager.TourManager()
         self.location_buffer = deque(maxlen=60 * 60)
         logging.getLogger("werkzeug").setLevel(logging.WARNING)
@@ -358,6 +363,17 @@ class WebUI:
                     # lst.append(value)
                     lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': value})
                     self.last_data[event_type] = lst[-self.MAX_TIMESTAMP_SIZE:]
+                    lst = self.last_data['SpokenText']
+                    lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': ''})
+                    self.last_data['SpokenText'] = lst[-self.MAX_TIMESTAMP_SIZE:]
+                return
+
+            if event_type == 'share.SpeakProgress':
+                if isinstance(value, str) and value and not emit:
+                    lst = self.last_data['SpokenText']
+                    pos = data.get("location", 0) + data.get("length", 0)
+                    if lst and pos > 0:
+                        lst[-1]['data'] = value[: pos]
                 return
 
             if event_type == 'share.ChatStatus':
