@@ -109,6 +109,7 @@ class WebUI:
         Compress(app)
 
         api = Blueprint("api", __name__, url_prefix="/api")
+        api_utility = Blueprint("utility", __name__, url_prefix="/api/utility")
 
         def on_offset_sign(value):
             if value is not None:
@@ -231,6 +232,78 @@ class WebUI:
             return jsonify({'status': 'ok'})
 
         app.register_blueprint(api)
+
+        @api_utility.route('/bug-report/context/')
+        def utility_bug_report_context():
+            try:
+                created_at_text = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+                return jsonify({
+                    "robot_name": os.getenv("CABOT_NAME", "UNKNOWN"),
+                    "log_name": cabot_manager._log_report.latest_log_name(),
+                    "created_at_text": created_at_text,
+                })
+            except Exception as exc:
+                return jsonify({"error": str(exc)}), 503
+
+        @api_utility.route('/bug-report/', methods=['POST'])
+        def utility_bug_report():
+            body = request.get_json(silent=True)
+            if not body:
+                return jsonify({'error': 'request body is required'}), 400
+
+            report_id = str(body.get("report_id", "")).strip()
+            title = str(body.get("title", "")).strip()
+            detail = str(body.get("detail", ""))
+            log_name = str(body.get("log_name", "")).strip()
+            attachments = body.get("attachments") or []
+            screenshot = body.get("screenshot")
+
+            if not report_id:
+                return jsonify({'error': 'report_id is required'}), 400
+            if not title:
+                return jsonify({'error': 'title is required'}), 400
+            if not detail.strip():
+                return jsonify({'error': 'detail is required'}), 400
+            if not log_name:
+                return jsonify({'error': 'log_name is required'}), 400
+
+            normalized_attachments = []
+            for index, attachment in enumerate(attachments, start=1):
+                normalized_attachment = {
+                    "file_name": attachment.get("file_name") or f"webui-attachment-{index}.png",
+                    "original_name": attachment.get("original_name") or attachment.get("file_name") or f"attachment-{index}.png",
+                    "order": attachment.get("order", index),
+                    "data": attachment.get("data", ""),
+                }
+                if not normalized_attachment["data"]:
+                    return jsonify({'error': f'attachment {index} data is invalid'}), 400
+                normalized_attachments.append(normalized_attachment)
+
+            if screenshot:
+                normalized_attachment = {
+                    "file_name": screenshot.get("file_name") or f"webui-report-{report_id}.webp",
+                    "original_name": screenshot.get("file_name") or "webui-report.webp",
+                    "order": screenshot.get("order", len(normalized_attachments) + 1),
+                    "data": screenshot.get("data", ""),
+                }
+                if not normalized_attachment["data"]:
+                    return jsonify({'error': 'screenshot data is invalid'}), 400
+                normalized_attachments.append(normalized_attachment)
+
+            try:
+                result = cabot_manager._log_report.create_webui_report(
+                    report_id=report_id,
+                    title=title,
+                    detail=detail,
+                    log_name=log_name,
+                    attachments=normalized_attachments,
+                )
+                return jsonify({"status": "ok", **result})
+            except Exception as exc:
+                common.logger.error(f"utility bug report failed: {exc}")
+                return jsonify({"error": str(exc)}), 502
+
+        app.register_blueprint(api_utility)
 
         # Socket.IO Wrappers
         original_emit = sio.emit
