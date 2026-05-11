@@ -28,7 +28,9 @@ import subprocess
 import threading
 import time
 import base64
+import binascii
 import codecs
+import re
 
 DEBUG = False
 
@@ -39,6 +41,8 @@ logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 file_directory = "/opt/cabot/docker/home/.ros/log/"
 attachment_directory_name = "mobile_attachments"
 manifest_filename = "manifest.json"
+webui_reports_directory_name = "webui_reports"
+report_id_pattern = re.compile(r"^[A-Za-z0-9_-]+$")
 
 class LogReport:
     def __init__(self):
@@ -75,6 +79,14 @@ class LogReport:
         result = subprocess.run(command, capture_output=True, text=True, env=os.environ.copy()).stdout
         return result.split()
 
+    def makeWebuiReport(self, report_id, title, detail, name):
+        command = ["sudo", "-E", "/opt/report-submitter/create_webui_issue.sh", title, detail, name, report_id]
+        result = subprocess.run(command, capture_output=True, text=True, env=os.environ.copy())
+        if result.returncode != 0:
+            message = result.stderr.strip() or result.stdout.strip() or "failed to create webui issue entry"
+            raise RuntimeError(message)
+        return result.stdout.split()
+
     def submitReport(self):
         command = ["systemctl", "--user", "start", "submit_report"]
         subprocess.run(command, capture_output=True, text=True, env=os.environ.copy()).stdout
@@ -102,6 +114,123 @@ class LogReport:
 
     def manifest_path(self, cabot_log_name):
         return os.path.join(self.attachment_directory(cabot_log_name), manifest_filename)
+
+    def latest_log_name(self):
+        latest_path = os.path.join(file_directory, "latest")
+        resolved_path = os.path.realpath(latest_path)
+        file_root = os.path.realpath(file_directory)
+        if not resolved_path or not os.path.isdir(resolved_path):
+            raise FileNotFoundError("active log directory is not available")
+        if os.path.commonpath([file_root, resolved_path]) != file_root:
+            raise FileNotFoundError("active log directory is invalid")
+        log_name = os.path.basename(resolved_path.rstrip("/"))
+        if not log_name.startswith("cabot_"):
+            raise FileNotFoundError("active log directory is invalid")
+        return log_name
+
+    def validate_log_name(self, log_name):
+        normalized = os.path.basename(str(log_name).strip())
+        if normalized != log_name:
+            raise ValueError("log_name is invalid")
+        if not normalized.startswith("cabot_"):
+            raise ValueError("log_name is invalid")
+
+        log_directory = self.log_directory(normalized)
+        if not os.path.isdir(log_directory):
+            raise FileNotFoundError("log directory is not available")
+        return normalized
+
+    def webui_report_directory(self, cabot_log_name, report_id):
+        return os.path.join(self.log_directory(cabot_log_name), webui_reports_directory_name, report_id)
+
+    def webui_manifest_path(self, cabot_log_name, report_id):
+        return os.path.join(self.webui_report_directory(cabot_log_name, report_id), manifest_filename)
+
+    def save_webui_manifest(self, cabot_log_name, report_id, attachments):
+        report_directory = self.webui_report_directory(cabot_log_name, report_id)
+        os.makedirs(report_directory, exist_ok=True)
+        with open(self.webui_manifest_path(cabot_log_name, report_id), "w") as manifest_file:
+            json.dump({"attachments": attachments}, manifest_file)
+
+    def save_webui_attachment(self, cabot_log_name, report_id, attachment):
+        report_directory = self.webui_report_directory(cabot_log_name, report_id)
+        os.makedirs(report_directory, exist_ok=True)
+        file_name = os.path.basename(str(attachment.get("file_name", "")).strip())
+        if not file_name:
+            raise ValueError("attachment file name is required")
+        raw = attachment.get("data", "")
+        file_path = os.path.join(report_directory, file_name)
+        try:
+            decoded = base64.b64decode(raw, validate=True)
+        except (ValueError, binascii.Error) as exc:
+            raise ValueError("attachment data is invalid") from exc
+        with open(file_path, "wb") as output_file:
+            output_file.write(decoded)
+        return {
+            "file_name": file_name,
+            "original_name": str(attachment.get("original_name", file_name)),
+            "order": int(attachment.get("order", 1)),
+        }
+
+    def create_webui_issue_entry(self, report_id, title, detail, log_name):
+        self.makeWebuiReport(report_id, title, detail, log_name)
+
+    def normalize_webui_attachments(self, attachments):
+        source = attachments or []
+        if not isinstance(source, list):
+            raise ValueError("attachments must be a list")
+
+        normalized = []
+        for index, attachment in enumerate(source, start=1):
+            if not isinstance(attachment, dict):
+                raise ValueError(f"attachment {index} is invalid")
+
+            file_name = os.path.basename(str(attachment.get("file_name", "")).strip()) or f"webui-attachment-{index}.png"
+            original_name = str(attachment.get("original_name", file_name)).strip() or file_name
+            raw_order = attachment.get("order", index)
+            try:
+                order = int(raw_order)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"attachment {index} order is invalid") from exc
+
+            data = str(attachment.get("data", ""))
+            if not data:
+                raise ValueError(f"attachment {index} data is invalid")
+
+            normalized.append({
+                "file_name": file_name,
+                "original_name": original_name,
+                "order": order,
+                "data": data,
+            })
+
+        return normalized
+
+    def create_webui_report(self, report_id, title, detail, log_name, attachments=None):
+        if not report_id:
+            raise ValueError("report_id is required")
+        if not title:
+            raise ValueError("title is required")
+        if not detail or not detail.strip():
+            raise ValueError("detail is required")
+        if not log_name:
+            raise ValueError("log_name is required")
+        if not report_id_pattern.match(report_id):
+            raise ValueError("report_id is invalid")
+        log_name = self.validate_log_name(log_name)
+        normalized_attachments = self.normalize_webui_attachments(attachments)
+        saved_attachments = []
+        for attachment in normalized_attachments:
+            saved_attachments.append(self.save_webui_attachment(log_name, report_id, attachment))
+        if saved_attachments:
+            self.save_webui_manifest(log_name, report_id, saved_attachments)
+        self.create_webui_issue_entry(report_id, title, detail, log_name)
+        self.submitReport()
+        return {
+            "report_id": report_id,
+            "log_name": log_name,
+            "attachment_count": len(saved_attachments),
+        }
 
     def normalize_attachments(self, attachments):
         normalized = []

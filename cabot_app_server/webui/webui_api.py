@@ -109,6 +109,7 @@ class WebUI:
         Compress(app)
 
         api = Blueprint("api", __name__, url_prefix="/api")
+        api_utility = Blueprint("utility", __name__, url_prefix="/api/utility")
 
         def on_offset_sign(value):
             if value is not None:
@@ -231,6 +232,41 @@ class WebUI:
             return jsonify({'status': 'ok'})
 
         app.register_blueprint(api)
+
+        @api_utility.route('/bug-report/context/')
+        def utility_bug_report_context():
+            try:
+                created_at_text = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+                return jsonify({
+                    "robot_name": os.getenv("CABOT_NAME", "UNKNOWN"),
+                    "log_name": cabot_manager._log_report.latest_log_name(),
+                    "created_at_text": created_at_text,
+                })
+            except Exception as exc:
+                return jsonify({"error": str(exc)}), 503
+
+        @api_utility.route('/bug-report/', methods=['POST'])
+        def utility_bug_report():
+            body = request.get_json(silent=True)
+            if not body:
+                return jsonify({'error': 'request body is required'}), 400
+
+            try:
+                result = cabot_manager._log_report.create_webui_report(
+                    report_id=str(body.get("report_id", "")).strip(),
+                    title=str(body.get("title", "")).strip(),
+                    detail=str(body.get("detail", "")),
+                    log_name=str(body.get("log_name", "")).strip(),
+                    attachments=body.get("attachments") or [],
+                )
+                return jsonify({"status": "ok", **result})
+            except ValueError as exc:
+                return jsonify({"error": str(exc)}), 400
+            except Exception as exc:
+                common.logger.error(f"utility bug report failed: {exc}")
+                return jsonify({"error": str(exc)}), 502
+
+        app.register_blueprint(api_utility)
 
         # Socket.IO Wrappers
         original_emit = sio.emit
