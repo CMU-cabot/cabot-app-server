@@ -175,14 +175,52 @@ class LogReport:
     def create_webui_issue_entry(self, report_id, title, detail, log_name):
         self.makeWebuiReport(report_id, title, detail, log_name)
 
+    def normalize_webui_attachments(self, attachments):
+        source = attachments or []
+        if not isinstance(source, list):
+            raise ValueError("attachments must be a list")
+
+        normalized = []
+        for index, attachment in enumerate(source, start=1):
+            if not isinstance(attachment, dict):
+                raise ValueError(f"attachment {index} is invalid")
+
+            file_name = os.path.basename(str(attachment.get("file_name", "")).strip()) or f"webui-attachment-{index}.png"
+            original_name = str(attachment.get("original_name", file_name)).strip() or file_name
+            raw_order = attachment.get("order", index)
+            try:
+                order = int(raw_order)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"attachment {index} order is invalid") from exc
+
+            data = str(attachment.get("data", ""))
+            if not data:
+                raise ValueError(f"attachment {index} data is invalid")
+
+            normalized.append({
+                "file_name": file_name,
+                "original_name": original_name,
+                "order": order,
+                "data": data,
+            })
+
+        return normalized
+
     def create_webui_report(self, report_id, title, detail, log_name, attachments=None):
         if not report_id:
             raise ValueError("report_id is required")
+        if not title:
+            raise ValueError("title is required")
+        if not detail or not detail.strip():
+            raise ValueError("detail is required")
+        if not log_name:
+            raise ValueError("log_name is required")
         if not report_id_pattern.match(report_id):
             raise ValueError("report_id is invalid")
         log_name = self.validate_log_name(log_name)
+        normalized_attachments = self.normalize_webui_attachments(attachments)
         saved_attachments = []
-        for attachment in attachments or []:
+        for attachment in normalized_attachments:
             saved_attachments.append(self.save_webui_attachment(log_name, report_id, attachment))
         if saved_attachments:
             self.save_webui_manifest(log_name, report_id, saved_attachments)

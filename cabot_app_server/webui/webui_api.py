@@ -256,39 +256,6 @@ class WebUI:
             detail = str(body.get("detail", ""))
             log_name = str(body.get("log_name", "")).strip()
             attachments = body.get("attachments") or []
-            screenshot = body.get("screenshot")
-
-            if not report_id:
-                return jsonify({'error': 'report_id is required'}), 400
-            if not title:
-                return jsonify({'error': 'title is required'}), 400
-            if not detail.strip():
-                return jsonify({'error': 'detail is required'}), 400
-            if not log_name:
-                return jsonify({'error': 'log_name is required'}), 400
-
-            normalized_attachments = []
-            for index, attachment in enumerate(attachments, start=1):
-                normalized_attachment = {
-                    "file_name": attachment.get("file_name") or f"webui-attachment-{index}.png",
-                    "original_name": attachment.get("original_name") or attachment.get("file_name") or f"attachment-{index}.png",
-                    "order": attachment.get("order", index),
-                    "data": attachment.get("data", ""),
-                }
-                if not normalized_attachment["data"]:
-                    return jsonify({'error': f'attachment {index} data is invalid'}), 400
-                normalized_attachments.append(normalized_attachment)
-
-            if screenshot:
-                normalized_attachment = {
-                    "file_name": screenshot.get("file_name") or f"webui-report-{report_id}.webp",
-                    "original_name": screenshot.get("file_name") or "webui-report.webp",
-                    "order": screenshot.get("order", len(normalized_attachments) + 1),
-                    "data": screenshot.get("data", ""),
-                }
-                if not normalized_attachment["data"]:
-                    return jsonify({'error': 'screenshot data is invalid'}), 400
-                normalized_attachments.append(normalized_attachment)
 
             try:
                 result = cabot_manager._log_report.create_webui_report(
@@ -296,9 +263,11 @@ class WebUI:
                     title=title,
                     detail=detail,
                     log_name=log_name,
-                    attachments=normalized_attachments,
+                    attachments=attachments,
                 )
                 return jsonify({"status": "ok", **result})
+            except ValueError as exc:
+                return jsonify({"error": str(exc)}), 400
             except Exception as exc:
                 common.logger.error(f"utility bug report failed: {exc}")
                 return jsonify({"error": str(exc)}), 502
