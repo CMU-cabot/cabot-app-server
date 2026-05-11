@@ -251,19 +251,13 @@ class WebUI:
             if not body:
                 return jsonify({'error': 'request body is required'}), 400
 
-            report_id = str(body.get("report_id", "")).strip()
-            title = str(body.get("title", "")).strip()
-            detail = str(body.get("detail", ""))
-            log_name = str(body.get("log_name", "")).strip()
-            attachments = body.get("attachments") or []
-
             try:
                 result = cabot_manager._log_report.create_webui_report(
-                    report_id=report_id,
-                    title=title,
-                    detail=detail,
-                    log_name=log_name,
-                    attachments=attachments,
+                    report_id=str(body.get("report_id", "")).strip(),
+                    title=str(body.get("title", "")).strip(),
+                    detail=str(body.get("detail", "")),
+                    log_name=str(body.get("log_name", "")).strip(),
+                    attachments=body.get("attachments") or [],
                 )
                 return jsonify({"status": "ok", **result})
             except ValueError as exc:
