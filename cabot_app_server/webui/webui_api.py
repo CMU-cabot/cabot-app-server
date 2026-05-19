@@ -412,6 +412,13 @@ class WebUI:
                         lst[-1]['data'] = value[: pos]
                 return
 
+            if event_type in ['share.SpeechRecognitionResult']:
+                if isinstance(value, str) and value and not emit:
+                    lst = self.last_data[event_type]
+                    lst.append({'timestamp': datetime.now(timezone.utc).isoformat(), 'data': value})
+                    self.last_data[event_type] = lst[-self.MAX_TIMESTAMP_SIZE:]
+                return
+
             if event_type == 'share.ChatStatus':
                 if isinstance(value, str):
                     value = json.loads(value)
