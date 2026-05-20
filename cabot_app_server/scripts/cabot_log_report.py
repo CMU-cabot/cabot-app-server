@@ -31,6 +31,7 @@ import base64
 import binascii
 import codecs
 import re
+import shutil
 
 DEBUG = False
 
@@ -79,8 +80,11 @@ class LogReport:
         result = subprocess.run(command, capture_output=True, text=True, env=os.environ.copy()).stdout
         return result.split()
 
-    def makeWebuiReport(self, report_id, title, detail, name):
-        command = ["sudo", "-E", "/opt/report-submitter/create_webui_issue.sh", title, detail, name, report_id]
+    def makeWebuiReport(self, report_id, title, detail, name, submit=True):
+        command = [
+            "sudo", "-E", "/opt/report-submitter/create_webui_issue.sh",
+            title, detail, name, report_id, "1" if submit else "0"
+        ]
         result = subprocess.run(command, capture_output=True, text=True, env=os.environ.copy())
         if result.returncode != 0:
             message = result.stderr.strip() or result.stdout.strip() or "failed to create webui issue entry"
@@ -172,8 +176,13 @@ class LogReport:
             "order": int(attachment.get("order", 1)),
         }
 
-    def create_webui_issue_entry(self, report_id, title, detail, log_name):
-        self.makeWebuiReport(report_id, title, detail, log_name)
+    def create_webui_issue_entry(self, report_id, title, detail, log_name, submit=True):
+        self.makeWebuiReport(report_id, title, detail, log_name, submit)
+
+    def reset_webui_report_directory(self, cabot_log_name, report_id):
+        report_directory = self.webui_report_directory(cabot_log_name, report_id)
+        if os.path.isdir(report_directory):
+            shutil.rmtree(report_directory)
 
     def normalize_webui_attachments(self, attachments):
         source = attachments or []
@@ -206,30 +215,31 @@ class LogReport:
 
         return normalized
 
-    def create_webui_report(self, report_id, title, detail, log_name, attachments=None):
+    def create_webui_report(self, report_id, title, detail, log_name, attachments=None, submit=True):
         if not report_id:
             raise ValueError("report_id is required")
         if not title:
             raise ValueError("title is required")
-        if not detail or not detail.strip():
-            raise ValueError("detail is required")
         if not log_name:
             raise ValueError("log_name is required")
         if not report_id_pattern.match(report_id):
             raise ValueError("report_id is invalid")
         log_name = self.validate_log_name(log_name)
         normalized_attachments = self.normalize_webui_attachments(attachments)
+        self.reset_webui_report_directory(log_name, report_id)
         saved_attachments = []
         for attachment in normalized_attachments:
             saved_attachments.append(self.save_webui_attachment(log_name, report_id, attachment))
         if saved_attachments:
             self.save_webui_manifest(log_name, report_id, saved_attachments)
-        self.create_webui_issue_entry(report_id, title, detail, log_name)
-        self.submitReport()
+        self.create_webui_issue_entry(report_id, title, detail, log_name, submit)
+        if submit:
+            self.submitReport()
         return {
             "report_id": report_id,
             "log_name": log_name,
             "attachment_count": len(saved_attachments),
+            "submitted": bool(submit),
         }
 
     def normalize_attachments(self, attachments):
