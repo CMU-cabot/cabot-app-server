@@ -112,6 +112,10 @@ class CaBotTCP():
                 common.logger.info(f"camera_image_request {data}")
                 self.camera_image_char.sendCameraImage(to=sid)
                 self.camera_orientation_char.sendCameraOrientation(to=sid)
+                self.camera_right_image_char.sendCameraImage(msg=common.last_camera_right_image, to=sid)
+                self.camera_right_orientation_char.sendCameraOrientation(msg=common.last_camera_right_orientation, to=sid)
+                self.camera_left_image_char.sendCameraImage(msg=common.last_camera_left_image, to=sid)
+                self.camera_left_orientation_char.sendCameraOrientation(msg=common.last_camera_left_orientation, to=sid)
 
             @self.sio.event
             def disconnect(sid, reason):
@@ -129,6 +133,10 @@ class CaBotTCP():
         self.touch_char = common.TouchChars(self, "touch")
         self.camera_image_char = common.CameraImageChars(self, "camera_image")
         self.camera_orientation_char = common.CameraOrientationChar(self, "camera_orientation")
+        self.camera_right_image_char = common.CameraImageChars(self, "camera_right_image")
+        self.camera_right_orientation_char = common.CameraOrientationChar(self, "camera_right_orientation")
+        self.camera_left_image_char = common.CameraImageChars(self, "camera_left_image")
+        self.camera_left_orientation_char = common.CameraOrientationChar(self, "camera_left_orientation")
         self.location_char = common.LocationChars(self, "location")
 
         self.handler = subchar_handler("/cabot")

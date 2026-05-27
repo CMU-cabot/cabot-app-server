@@ -77,6 +77,10 @@ class WebUI:
         'camera_image_request',
         'camera_image',
         'camera_orientation',
+        'camera_right_image',
+        'camera_right_orientation',
+        'camera_left_image',
+        'camera_left_orientation',
         'device_status',
         'system_status',
     }
