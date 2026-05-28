@@ -80,16 +80,16 @@ message_buffer = deque(maxlen=10)
 
 last_camera_image: CompressedImage = None
 last_camera_orientation: Quaternion = None
+last_camera_left_image: CompressedImage = None
+last_camera_left_orientation: Quaternion = None
+last_camera_right_image: CompressedImage = None
+last_camera_right_orientation: Quaternion = None
 last_location: PoseLog2 = None
 
 # for WebUI
 touch_buffer = deque(maxlen=30)
 cmd_vel_buffer = deque(maxlen=30)
 lidar_speed_buffer = deque(maxlen=10)
-last_camera_left_image: CompressedImage = None
-last_camera_left_orientation: Quaternion = None
-last_camera_right_image: CompressedImage = None
-last_camera_right_orientation: Quaternion = None
 last_rosmap_image: CompressedImage = None
 last_localize_status = MFLocalizeStatus.UNKNOWN
 last_imu_data: Imu = None
@@ -695,11 +695,11 @@ class CabotNode_Sub(Node):
         self.reset_gnss_client = self.create_client(MFTrigger, "/reset_gnss")
         self.camera_image_sub = self.create_subscription(CompressedImage, '/camera/color/image_raw/compressed', self.camera_image_callback, 10)
         self.rs1_image_sub = self.create_subscription(CompressedImage, '/rs1/color/image_raw/compressed', self.camera_image_callback, 10)
+        self.rs2_image_sub = self.create_subscription(CompressedImage, '/rs2/color/image_raw/compressed', self.camera_right_image_callback, 10)
+        self.rs3_image_sub = self.create_subscription(CompressedImage, '/rs3/color/image_raw/compressed', self.camera_left_image_callback, 10)
         self.location_sub = self.create_subscription(PoseLog2, '/cabot/pose_log2', self.location_callback, 10)
         if os.getenv('CABOT_USE_WEBUI') == '1':
             logger.info("Subscribe to topics for WebUI")
-            self.rs2_image_sub = self.create_subscription(CompressedImage, '/rs2/color/image_raw/compressed', self.camera_right_image_callback, 10)
-            self.rs3_image_sub = self.create_subscription(CompressedImage, '/rs3/color/image_raw/compressed', self.camera_left_image_callback, 10)
             self.rosmap_image_sub = self.create_subscription(CompressedImage, '/rosmap_image/compressed', self.rosmap_image_callback, 10)
             self.localize_status_sub = self.create_subscription(MFLocalizeStatus, "/localize_status", self.localize_status_callback, 10)
             self.cmd_vel_sub = self.create_subscription(Twist, '/cabot/cmd_vel', self.cmd_vel_callback, 10)
