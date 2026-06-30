@@ -403,6 +403,14 @@ class CaBotManager():
     def enableWiFi(self, enable):
         self._call(["rfkill", "unblock" if enable else "block", "wifi"])
 
+    def rotateScreen(self, portrait):
+        rotate = "left" if portrait else "normal"
+        self._call([
+            "ssh",
+            "cabot@localhost",
+            "/opt/cabot/tools/rotate-screen.sh", rotate
+        ], lock=self.systemctl_lock)
+
     def device_status(self):
         return self._device_status
 
