@@ -230,6 +230,10 @@ class CabotManageChar(BLESubChar):
             self.manager.enableWiFi(True)
         if value == "disablewifi":
             self.manager.enableWiFi(False)
+        if value.startswith("rotate_screen-"):
+            val = value.split("-", 1)[1].strip().lower()
+            if val in {"portrait", "landscape"}:
+                self.manager.rotateScreen(val == "portrait")
         if value.startswith("follow_exact_path-"):
             val = value.split("-", 1)[1].strip().lower()
             if val in {"on", "off"}:
