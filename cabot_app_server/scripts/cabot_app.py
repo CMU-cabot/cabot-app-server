@@ -405,9 +405,12 @@ class CaBotManager():
 
     def rotateScreen(self, portrait):
         rotate = "left" if portrait else "normal"
+        host_user = os.environ["CABOT_HOST_USER"]
+        ssh_id_file = os.environ["CABOT_SSH_ID_FILE"]
         self._call([
             "ssh",
-            "cabot@localhost",
+            "-i", ssh_id_file,
+            f"{host_user}@localhost",
             "/opt/cabot/tools/rotate-screen.sh", rotate
         ], lock=self.systemctl_lock)
 
