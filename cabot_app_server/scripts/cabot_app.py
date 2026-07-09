@@ -409,6 +409,7 @@ class CaBotManager():
         ssh_id_file = os.environ["CABOT_SSH_ID_FILE"]
         self._call([
             "ssh",
+            "-o", "StrictHostKeyChecking=no",
             "-i", ssh_id_file,
             f"{host_user}@localhost",
             "/opt/cabot/tools/rotate-screen.sh", rotate
