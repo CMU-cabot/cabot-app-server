@@ -51,7 +51,7 @@ class TourManager:
                 self.config = requests.get(self.CONFIG_URL).json()
                 common.logger.info(f"config={self.config}")
                 initial_location = self.config.get('INITIAL_LOCATION', {})
-                dist = self.config.get('MAX_RADIUS')
+                dist = self.config.get('MAX_RADIUS', '500')
                 lat = initial_location.get('lat')
                 lng = initial_location.get('lng')
                 if dist and lat and lng:
