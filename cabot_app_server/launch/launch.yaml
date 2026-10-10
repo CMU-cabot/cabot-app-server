@@ -16,7 +16,7 @@ launch:
         "value": "base_footprint"
       -
         "name": "scale"
-        "value": 3.0
+        "value": 1.0
       -
         "name": "arrow_length_px"
         "value": 16
