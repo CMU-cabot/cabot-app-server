@@ -480,7 +480,7 @@ class EventChars(BLENotifyChar):
 
         if event.subtype not in [
             "next", "arrived", "content", "sound", "getlanguage", "gethandleside", "gettouchmode", "getfollowexactpath",
-            "getspeakeraudiofiles", "togglespeakstate", "toggleconversation", "getelevatorsettings"
+            "getspeakeraudiofiles", "togglespeakstate", "toggleconversation", "getelevatorsettings", "ptton", "pttoff"
         ]:
             return
         req = {
