@@ -95,10 +95,16 @@ last_localize_status = MFLocalizeStatus.UNKNOWN
 last_imu_data: Imu = None
 last_pause_control: Bool = None
 last_user_speed: Float32 = None
+last_recording_reduced_rate = (False, 0.0)
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+
+
+def recording_reduced_rate():
+    reduced, received = last_recording_reduced_rate
+    return reduced and time.monotonic() - received < 3.0
 
 
 def activity_log(category="", text="", memo=""):
@@ -704,6 +710,8 @@ class CabotNode_Sub(Node):
         self.location_sub = self.create_subscription(PoseLog2, '/cabot/pose_log2', self.location_callback, 10)
         if os.getenv('CABOT_USE_WEBUI') == '1':
             logger.info("Subscribe to topics for WebUI")
+            self.recording_reduced_rate_sub = self.create_subscription(
+                Bool, '/recording/reduced_rate', self.recording_reduced_rate_callback, 1)
             self.rosmap_image_sub = self.create_subscription(CompressedImage, '/rosmap_image/compressed', self.rosmap_image_callback, 10)
             self.localize_status_sub = self.create_subscription(MFLocalizeStatus, "/localize_status", self.localize_status_callback, 10)
             self.cmd_vel_sub = self.create_subscription(Twist, '/cabot/cmd_vel', self.cmd_vel_callback, 10)
@@ -778,6 +786,10 @@ class CabotNode_Sub(Node):
             last_camera_right_orientation = self.buffer.lookup_transform(msg.header.frame_id, "base_link", Time()).transform.rotation
         except:  # noqa: E722
             pass
+
+    def recording_reduced_rate_callback(self, msg):
+        global last_recording_reduced_rate
+        last_recording_reduced_rate = (msg.data, time.monotonic())
 
     def rosmap_image_callback(self, msg):
         global last_rosmap_image

@@ -168,6 +168,7 @@ class WebUI:
                     )
                 )
                 self.last_data['imu_data'] = [{'roll': abs(math.degrees(roll)), 'pitch': abs(math.degrees(pitch))}]
+            self.last_data['recording_reduced_rate'] = common.recording_reduced_rate()
             self.last_data['api_version'] = 1.1
             return jsonify(self.last_data)
 

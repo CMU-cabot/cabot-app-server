@@ -102,3 +102,14 @@ options
 -od,　　--odrive_power    #　turn on[1] or off[0] odrive motor controller.
 ```
 
+
+### Optional recording activity for WebUI
+
+When WebUI is enabled, `/recording/reduced_rate` (`std_msgs/msg/Bool`, reliable,
+volatile, depth 1) can indicate that the current recording state allows reduced
+image polling. Publish this state periodically (for example, every second).
+`/api/last_data/` exposes it as the boolean `recording_reduced_rate`; it is false
+before the first message and after three seconds without a message. No publisher
+or custom message package is required. The WebUI chooses the polling interval;
+this topic carries only the currently known state, not historical bag retention
+or a requested interval.
